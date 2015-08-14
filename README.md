@@ -4,35 +4,59 @@
 
 ## About
 
-PyNNLess is yet another abstraction layer ontop of [PyNN](http://neuralensemble.org/PyNN/).
-It aims at providing a simple, common API for experiments with relatively small
-spiking neural networks that works with all backends used in the Human Brain
-Project (HBP).
+PyNNLess is yet another abstraction layer on top of
+[PyNN](http://neuralensemble.org/PyNN/). It aims at providing a simple and
+stable API for experiments with relatively small spiking neural networks. It
+should work with all backends used in the
+[Human Brain Project (HBP)](https://www.humanbrainproject.eu/).
 
 Backends include the software simulator [NEST](http://www.nest-simulator.org/)
-(versions 2.2 and 2.4), the [SpiNNaker multicore hardware](https://github.com/SpiNNakerManchester/)
-(NMMC1) developed at Manchester University and the [HICANN physical modell](https://github.com/electronicvisions/)
+(versions 2.2 and 2.4), the
+[SpiNNaker multicore system](https://github.com/SpiNNakerManchester/)
+(NMMC1) developed at Manchester University and the
+[HICANN physical modell](https://github.com/electronicvisions/)
 (NMPM1) developed at Heidelberg University and its emulation, the ESS.
 
 ### Why yet another PyNN abstraction layer?
 
-`PyNNLess` provides a common API for both `PyNN` 0.7 and 0.8 and works around the
-bugs in the hardware backend bindings. At some point in the future these bugs
-will eventually be fixed and `PyNNLess` will be obsolete.
+_PyNNLess_ provides a common API for both _PyNN_ 0.7 and 0.8 and works around the
+bugs in the hardware backend bindings. Eventually, at some point in the future
+these bugs will be fixed and _PyNNLess_ will be obsolete.
 
 Both network descriptions and recorded results are provided in a JSON-like
-object format, making it very easy to use `PyNNLess` but rendering it impractical
+object format, making it very easy to use _PyNNLess_ but rendering it impractical
 for larger networks and long simulation times.
 
-You should use `PyNNLess` instead of `PyNN` if you want to simulate fairly small
+You might find _PyNNLess_ interesting if you want to simulate fairly small
 networks (both network description and recorded results have to fit into main
-memory) and run them on multiple (hardware) backends or with different `PyNN`
-versions.
+memory) and run them on multiple backends or with different _PyNN_ versions.
+
+### How to use
+
+Install using the following commands:
+```bash
+git clone https://github.com/hbp-sanncs/pynnless.git
+sudo pip install pynless
+```
+
+_PyNNLess_ depends on _PyNN_ in either version 0.7 or 0.8.
+
+Examples on how to use _PyNNLess_ can be found in the
+[`examples`](https://github.com/hbp-sanncs/pynnless/tree/master/examples)
+folder.
 
 ### Further information
 
-* Information on how to use the HBP Neuromorphic Platform: [HBP Guidebook](http://electronicvisions.github.io/hbp-sp9-guidebook/)
-* PyNN to SpiNNaker Wrapper: [sPyNNaker](https://github.com/SpiNNakerManchester/sPyNNaker)
+* Information on how to use the HBP Neuromorphic Platform:
+	[HBP Guidebook](http://electronicvisions.github.io/hbp-sp9-guidebook/)
+* PyNN to SpiNNaker Wrapper:
+	[sPyNNaker](https://github.com/SpiNNakerManchester/sPyNNaker)
+
+### Contribute
+
+This project has been tailored to the use-cases required in our own work. If
+you'd like to expand the functionality please send a pull request on GitHub.
+Feel free to open an issue on GitHub if you think you've found a bug.
 
 ## Authors
 
