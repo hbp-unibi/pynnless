@@ -41,7 +41,7 @@ git clone https://github.com/hbp-sanncs/pynnless.git
 _PyNNLess_ depends on _PyNN_ in either version 0.7 or 0.8. Examples on how to
 use _PyNNLess_ can be found in the
 [`examples`](https://github.com/hbp-sanncs/pynnless/tree/master/examples)
-folder. You can simply execute the examples, you do not to globally install 
+folder. You can simply execute the examples, you do not need to globally install
 _PyNNLess_.
 
 If you want to install _PyNNLess_ on your system you can do so using the
