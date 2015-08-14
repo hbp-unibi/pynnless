@@ -26,24 +26,28 @@ import pyNN
 import pyNN.common
 import pyNN.standardmodels.cells
 import numpy as np
-import logging
 import importlib
+import pkgutil
+import logging
 
-# Constants for the supported neuron types
-TYPE_SOURCE = "SpikeSourceArray"
-TYPE_IF_COND_EXP = "IF_cond_exp"
-TYPE_AD_EX = "EIF_cond_exp_isfa_ista"
-TYPES = [TYPE_SOURCE, TYPE_IF_COND_EXP, TYPE_AD_EX]
-
-# Constants for the quantities that can be recorded
-SIG_SPIKES = "spikes"
-SIG_V = "v"
-SIG_GE = "gsyn_exc"
-SIG_GI = "gsyn_inh"
+# Local logger
+logger = logging.getLogger("PyNNLess")
 
 class PyNNLessException(Exception):
     """
     Exception type used in the PyNNLess module.
+    """
+    pass
+
+class PyNNLessVersionException(Exception):
+    """
+    Indicates an incompatible PyNN version.
+    """
+    pass
+
+class PyNNLessBackendException(Exception):
+    """
+    Used to find a not-compatible backend.
     """
     pass
 
@@ -53,6 +57,44 @@ class PyNNLess:
     which may either be present in version 0.7 or 0.8. Furthermore, it
     constructs the network from a simple graph abstraction.
     """
+
+    # Constants for the supported neuron types
+    TYPE_SOURCE = "SpikeSourceArray"
+    TYPE_IF_COND_EXP = "IF_cond_exp"
+    TYPE_AD_EX = "EIF_cond_exp_isfa_ista"
+    TYPES = [TYPE_SOURCE, TYPE_IF_COND_EXP, TYPE_AD_EX]
+
+    # Constants for the quantities that can be recorded
+    SIG_SPIKES = "spikes"
+    SIG_V = "v"
+    SIG_GE = "gsyn_exc"
+    SIG_GI = "gsyn_inh"
+    SIGNALS = [SIG_SPIKES, SIG_V, SIG_GE, SIG_GI]
+
+    # List containing all supported simulators. Other simulators may also be
+    # supported if they follow the PyNN specification, however, these simulators
+    # were tested and will be returned by the "backends" method. The simulator
+    # names are the normalized simulator names.
+    SUPPORTED_SIMULATORS = {
+        "nest", "ess", "nmpm1", "nmmc1"
+    }
+
+    # Used to map certain simulator names to a more canonical form. This
+    # canonical form does not correspond to the name of the actual module
+    # includes but the names that "feel more correct".
+    NORMALIZED_SIMULATOR_NAMES = {
+        "hardware.brainscales": "ess",
+        "spiNNaker": "nmmc1",
+        "pyhmf": "nmpm1",
+    }
+
+    # Maps certain simulator names to the correct PyNN module names. If multiple
+    # module names are given, the first found module is used.
+    SIMULATOR_IMPORT_MAP = {
+        "ess": ["pyNN.hardware.brainscales"],
+        "nmmc1": ["pyNN.spiNNaker"],
+        "nmpm1": ["pyhmf"],
+    }
 
     # Actual simulator instance, loaded by the "load" method.
     sim = None
@@ -67,45 +109,80 @@ class PyNNLess:
     # 0.8 respectively)
     version = 0
 
-    def _check_version():
+    @staticmethod
+    def _check_version(version):
         """
         Internally used to check the current PyNN version. Sets the "version"
         variable to the correct API version and raises an exception if the PyNN
         version is not supported.
-        """
-        if (pyNN.__version__[0:3] == '0.7'):
-            self.version = 7
-        elif (pyNN.__version__[0:3] == '0.8'):
-            self.version = 8
-        else:
-            raise PyNNLessException("Unsupported PyNN version '"
-                + pyNN.__version__ + "', supported are pyNN 0.7 and 0.8")
 
+        :param version: the PyNN version string to be checked, should be the
+        value of pyNN.__version__
+        """
+        if (version[0:3] == '0.7'):
+            return 7
+        elif (version[0:3] == '0.8'):
+            return 8
+        raise PyNNLessVersionException("Unsupported PyNN version '"
+            + pyNN.__version__ + "', supported are pyNN 0.7 and 0.8")
+
+    @classmethod
+    def _lookup_simulator(cls, simulator):
+        """
+        Internally used to generate the actual imports for the given simulator
+        and to normalize the internally used simulator names.
+
+        :param simulator: is the name of the simulator module as passed to the
+        constructor.
+        :return: a tuple containing the normalized simulator name and an array
+        containing possibly corresponing modules (the first existing module
+        should be used).
+        """
+        def unique(seq):
+            seen = set()
+            return [x for x in seq if not (x in seen or seen.add(x))]
+
+        if (simulator.startswith("pyNN.")):
+            simulator = simulator[5:]
+
+        imports = ["pyNN." + simulator]
+        normalized = simulator
+        if (normalized in cls.NORMALIZED_SIMULATOR_NAMES):
+            normalized = cls.NORMALIZED_SIMULATOR_NAMES[normalized]
+            imports.append("pyNN." + normalized)
+        if (normalized in cls.SIMULATOR_IMPORT_MAP):
+            imports.extend(cls.SIMULATOR_IMPORT_MAP[normalized])
+        return (normalized, unique(imports))
+
+    @staticmethod
     def _load_simulator(simulator):
         """
         Internally used to load the simulator with the specified name. Raises
         an PyNNLessException if the specified simulator cannot be loaded.
 
         :param simulator: simulator name as passed to the constructor.
+        :return: a tuple containing the simulator module and the final simulator
+        name.
         """
 
-        # Remap some simulator names passed from the neuromorphic compute
-        # platform to the correct simulator name
-        if (simulator == "ess"):
-            simulator = "hardware.brainscales"
+        # Try to load the simulator module
+        sim = None
+        normalized, imports = PyNNLess._lookup_simulator(simulator)
+        for i in xrange(len(imports)):
+            try:
+                sim = importlib.import_module(imports[i])
+                break
+            except ImportError:
+                if (i + 1 == len(imports)):
+                    raise PyNNLessBackendException(
+                        "Could not find simulator, tried to load the " +
+                        "following modules: " + str(imports) + ". Simulators " +
+                        "which seem to bee supported on this machine are: " +
+                        str(PyNNLess.simulators()))
+        return (sim, normalized)
 
-        # Try to load the simulator module, special handling for nmpm1
-        self.simulator = simulator
-        try:
-            if (simulator == "nmpm1"):
-                self.sim = importlib.import_module("pyhmf")
-            else:
-                self.sim = importlib.import_module("pyNN." + simulator)
-        except ImportError:
-            raise PyNNLessException(
-                "Could not find simulator backend " + simulator)
-
-    def _setup_simulator(setup):
+    @staticmethod
+    def _setup_simulator(sim, setup):
         """
         Internally used to setup the simulator with the given setup parameters.
 
@@ -119,14 +196,32 @@ class PyNNLess:
             setup["timestep"] = setup["min_delay"]
 
         # PyNN 0.7 compatibility hack: Force certain parameters to be floating
-        # point values
+        # point values (fixes "1" being passed as "timestep" instead of 1.0)
         for key in ["timestep", "min_delay", "max_delay"]:
             if (key in setup):
                 setup[key] = float(setup[key])
 
         # Try to setup the simulator
-        self.setup = setup
-        self.sim.setup(**setup)
+        sim.setup(**setup)
+        return setup
+
+    @classmethod
+    def simulators(cls):
+        """
+        Returns a list of simulators that seem to be supported on this machine.
+        """
+        res = []
+        for simulator in cls.SUPPORTED_SIMULATORS:
+            _, imports = PyNNLess._lookup_simulator(simulator)
+            for _import in imports:
+                try:
+                    loader = pkgutil.find_loader(_import)
+                    if (isinstance(loader, pkgutil.ImpLoader)):
+                        res.append(simulator)
+                        break
+                except ImportError:
+                    pass
+        return res
 
     def __init__(self, simulator, setup = {}):
         """
@@ -143,9 +238,12 @@ class PyNNLess:
         passed to the "setup" method.
         """
 
-        self._check_version()
-        self._load_simulator(simulator)
-        self._setup_simulator(setup)
+        self.version = self._check_version(pyNN.__version__)
+        self.sim, self.simulator = self._load_simulator(simulator)
+        self.setup = self._setup_simulator(self.sim, setup)
+
+        logger.info("Loaded and successfully set up simulator \""
+            + self.simulator + "\"")
 
     def _build_population(self, population):
         """
@@ -168,17 +266,17 @@ class PyNNLess:
         type_ = None
         is_source = False
         if (not "type" in population):
-            raise PyNNLessException("Type key not present in network description")
-        elif (population["type"] in TYPES):
+            raise PyNNLessException("'type' key not present in description")
+        elif (population["type"] in self.TYPES):
             type_name = population["type"]
             if (not hasattr(self.sim, type_name)):
-                raise PyNNLessException("Neuron type " + type_name
-                        + " not supported by backend.")
+                raise PyNNLessException("Neuron type '" + type_name
+                        + "' not supported by backend.")
             type_ = getattr(self.sim, type_name)
-            is_source = type_name == TYPE_SOURCE
+            is_source = type_name == self.TYPE_SOURCE
         else:
-            raise PyNNLessException("Invalid neuron type " + type_name +
-                " supported are " + str(TYPES))
+            raise PyNNLessException("Invalid neuron type '" + type_name +
+                "' supported are " + str(self.TYPES))
 
         # Fetch the default parameters for this neuron type and merge them with
         # parameters given for this population. Due to a bug in sPyNNaker, we
@@ -195,32 +293,50 @@ class PyNNLess:
                 if (key in population["params"]):
                     params[key] = population["params"][key]
 
+            # Issue warnings about ignored parameters
+            for key, _ in population["params"].items():
+                if (not key in params):
+                    logger.warning("Given parameter '" + key + "' does not " +
+                        "exist for neuron type '" + type_name + "'. Value " +
+                        "will be ignored!")
+
         # Fetch the parameter dimensions that should be recorded for this
         # population, make sure the elements in "record" are sorted
         record = []
         if ("record" in population):
-            record = population["record"]
+            if isinstance(population["record"], str):
+                record = [population["record"]]
+            else:
+                record = list(population["record"])
             record.sort()
+            for signal in record:
+                if (not signal in self.SIGNALS):
+                    logger.warning("Unknown signal \"" + signal
+                        + "\". May be ignored by the backend.")
+
+        # Write the sanitized population record back
+        population["record"] = record
 
         # Create the output population, in case this is not a source population,
         # also force the neuron membrane potential to be initialized with the
         # neuron membrane potential.
         res = None
-        if (self.is_pyNN7()):
+        if (self.version == 7):
             # Work around bug with setting spike_times for SpikeSourceArray in
-            # ESS
-            if (is_source and self.simulator == "hardware.brainscales"):
+            # ESS and NMPM1
+            if (is_source and (self.simulator == "ess"
+                    or self.simulator == "nmpm1")):
                 res = self.sim.Population(count, type_)
                 res.tset("spike_times", params["spike_times"])
             else:
                 res = self.sim.Population(count, type_, params)
             if (not is_source):
                 res.initialize("v", params["v_rest"])
-            if (SIG_SPIKES in record):
+            if (self.SIG_SPIKES in record):
                 if (is_source and self.simulator == "spiNNaker"):
                     # Workaround for bug #122 in sPyNNaker
                     # https://github.com/SpiNNakerManchester/sPyNNaker/issues/122
-                    logging.warning("spiNNaker backend does not support " +
+                    logger.warning("spiNNaker backend does not support " +
                              "recording input spikes, returning 'spike_times'.")
                     if ("spike_times" in params):
                         setattr(res, "__fake_spikes", params["spike_times"])
@@ -228,11 +344,11 @@ class PyNNLess:
                         setattr(res, "__fake_spikes", [[] for _ in xrange(count)])
                 else:
                     res.record()
-            if (SIG_V in record):
+            if (self.SIG_V in record):
                 res.record_v()
-            if ((SIG_GE in record) or (SIG_GI in record)):
+            if ((self.SIG_GE in record) or (self.SIG_GI in record)):
                 res.record_gsyn()
-        elif (self.is_pyNN8()):
+        elif (self.version == 8):
             res = self.sim.Population(count, type_, params)
             if (not is_source):
                 res.initialize(v=params["v_rest"])
@@ -267,7 +383,7 @@ class PyNNLess:
         # Create one result list for each neuron
         res = [[] for _ in xrange(n)]
         for row in spikes:
-            res[int(row[0])].append(row[1])
+            res[int(row[0])].append(np.float32(row[1]))
 
         # Make sure the resulting lists are sorted by time
         for i in xrange(n):
@@ -319,10 +435,10 @@ class PyNNLess:
         if (hasattr(population, "__fake_spikes")):
             spikes = getattr(population, "__fake_spikes")
             return [spikes for _ in xrange(population.size)]
-        if (self.is_pyNN7()):
+        if (self.version == 7):
             return self._convert_pyNN7_spikes(population.getSpikes(),
                 population.size)
-        elif (self.is_pyNN8()):
+        elif (self.version == 8):
             return self._convert_pyNN8_spikes(
                 population.get_data().segments[0].spiketrains)
         return []
@@ -337,20 +453,20 @@ class PyNNLess:
         spikes should be obtained.
         :param signal: name of the signal that should be returned.
         """
-        if (self.is_pyNN7()):
-            if (signal == SIG_V):
+        if (self.version == 7):
+            if (signal == self.SIG_V):
                 return self._convert_pyNN7_signal(population.get_v(), 2,
                     population.size)
-            elif (signal == SIG_GE):
+            elif (signal == self.SIG_GE):
                 return self._convert_pyNN7_signal(population.get_gsyn(), 2,
                     population.size)
-            elif (signal == SIG_GI):
+            elif (signal == self.SIG_GI):
                 # Workaround in bug #124 in sPyNNaker, see
                 # https://github.com/SpiNNakerManchester/sPyNNaker/issues/124
                 if (self.simulator != "spiNNaker"):
                     return self._convert_pyNN7_signal(population.get_gsyn(), 3,
                         population.size)
-        elif (self.is_pyNN8()):
+        elif (self.version == 8):
             for array in population.get_data().segments[0].analogsignalarrays:
                 if (array.name == signal):
                     return {
@@ -370,6 +486,16 @@ class PyNNLess:
         :return: the recorded signals for each population, signal type and
         neuron
         """
+
+        # Make sure both the "populations" and "connections" arrays have been
+        # supplied
+        if (not "populations" in network):
+            raise PyNNLessException("\"populations\" key must be present in " +
+                "network description")
+        if (not "connections" in network):
+            raise PyNNLessException("\"connections\" key must be present in " +
+                "network description")
+
         # Generate the neuron populations
         population_count = len(network["populations"]);
         populations = [None for _ in xrange(population_count)]
@@ -400,7 +526,7 @@ class PyNNLess:
         for i in xrange(population_count):
             if "record" in network["populations"][i]:
                 for signal in network["populations"][i]["record"]:
-                    if (signal == SIG_SPIKES):
+                    if (signal == self.SIG_SPIKES):
                         res[i][signal] = self._fetch_spikes(populations[i])
                     else:
                         data = self._fetch_signal(populations[i], signal);
