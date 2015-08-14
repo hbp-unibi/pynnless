@@ -22,26 +22,9 @@ Simple usage example of PyNNLess: Creates a network containing a single LIF
 neuron and a spike source array. Records the output spikes of the LIF neuron.
 """
 
-import logging
 import sys
-import os
-
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-
-# Add the top-level directory to the path. This allows you to test the examples
-# without having to install PyNNLess. You do not need this code one you have
-# installed PyNNLess
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
+import common
 from pynnless import PyNNLess as pl
-
-# Check the command line arguments
-if len(sys.argv) != 2:
-    print("Usage: ./single_neuron.py <SIMULATOR>")
-    print("Where <SIMULATOR> may be one of the following: "
-        + str(pl.simulators()))
-    sys.exit(1)
 
 # Create a new pl instance with the given backend
 backend = sys.argv[1]
