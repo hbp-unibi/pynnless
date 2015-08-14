@@ -23,9 +23,44 @@ Tests common functionality independent of the backend.
 import unittest
 import numpy as np
 
-from pynnless import PyNNLess
+from pynnless import *
 
 class TestCommon(unittest.TestCase):
+
+    def test_check_version(self):
+        """
+        Tests whether the "_check_version" method works as expected.
+        """
+        self.assertEqual(7, PyNNLess._check_version("0.7.3"))
+        self.assertEqual(7, PyNNLess._check_version("0.7.5"))
+        self.assertEqual(8, PyNNLess._check_version("0.8beta2"))
+        self.assertRaises(PyNNLessVersionException,
+                lambda: PyNNLess._check_version("0.5"))
+
+    def test_lookup_simulator(self):
+        """
+        Tests the static lookup_simulator method and checks whether all special
+        cases are covered.
+        """
+        self.assertEqual(("bla", ["pyNN.bla"]),
+                PyNNLess._lookup_simulator("bla"))
+        self.assertEqual(("bla", ["pyNN.bla"]),
+                PyNNLess._lookup_simulator("pyNN.bla"))
+        self.assertEqual(("ess", ["pyNN.ess",
+                "pyNN.hardware.brainscales"]),
+                PyNNLess._lookup_simulator("ess"))
+        self.assertEqual(("ess", ["pyNN.hardware.brainscales", "pyNN.ess"]),
+                PyNNLess._lookup_simulator("hardware.brainscales"))
+        self.assertEqual(("nmmc1", ["pyNN.nmmc1", "pyNN.spiNNaker"]),
+                PyNNLess._lookup_simulator("nmmc1"))
+        self.assertEqual(("nmmc1", ["pyNN.spiNNaker",
+                "pyNN.nmmc1"]), PyNNLess._lookup_simulator("spiNNaker"))
+        self.assertEqual(("nmpm1", ["pyNN.nmpm1", "pyhmf"]),
+                PyNNLess._lookup_simulator("nmpm1"))
+        self.assertEqual(("nmpm1", ["pyNN.pyhmf", "pyNN.nmpm1", "pyhmf"]),
+                PyNNLess._lookup_simulator("pyhmf"))
+        self.assertEqual(("nmpm1", ["pyNN.pyhmf", "pyNN.nmpm1", "pyhmf"]),
+                PyNNLess._lookup_simulator("pyNN.pyhmf"))
 
     def test_build_connections(self):
         """
@@ -62,10 +97,25 @@ class TestCommon(unittest.TestCase):
             [3, 0.1],
         ], 4)
         expected = [
-            [1.2],
-            [0.1, 0.2, 0.3],
-            [2.2, 2.3],
-            [0.1, 0.2]
+            map(np.float32, [1.2]),
+            map(np.float32, [0.1, 0.2, 0.3]),
+            map(np.float32, [2.2, 2.3]),
+            map(np.float32, [0.1, 0.2])
+        ]
+        self.assertEqual(spikes, expected)
+
+    def test_convert_pyNN8_spikes(self):
+        spikes = PyNNLess._convert_pyNN8_spikes([
+            np.asarray([1.2]),
+            np.asarray([0.1, 0.2, 0.3]),
+            np.asarray([2.2, 2.3]),
+            np.asarray([0.1, 0.2]),
+        ])
+        expected = [
+            map(np.float32, [1.2]),
+            map(np.float32, [0.1, 0.2, 0.3]),
+            map(np.float32, [2.2, 2.3]),
+            map(np.float32, [0.1, 0.2])
         ]
         self.assertEqual(spikes, expected)
 
