@@ -20,6 +20,9 @@ find -depth \(\
 			   -name "*.backup"\
 			-o -name "*~"\
 			-o -name "*.pyc"\
+			-o -wholename "*examples/reports*"\
+			-o -wholename "*examples/application_generated_data*"\
+			-o -wholename "*README.html"\
 		\) -a \! \(\
 			   -wholename "*.git/*"\
 			-o -wholename "*.svn" \)\
