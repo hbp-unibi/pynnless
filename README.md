@@ -33,17 +33,28 @@ memory) and run them on multiple backends or with different _PyNN_ versions.
 
 ### How to use
 
-Install using the following commands:
+Download the most recent version of _PyNNLess_ using the following command:
 ```bash
 git clone https://github.com/hbp-sanncs/pynnless.git
-sudo pip install pynless
 ```
 
-_PyNNLess_ depends on _PyNN_ in either version 0.7 or 0.8.
-
-Examples on how to use _PyNNLess_ can be found in the
+_PyNNLess_ depends on _PyNN_ in either version 0.7 or 0.8. Examples on how to
+use _PyNNLess_ can be found in the
 [`examples`](https://github.com/hbp-sanncs/pynnless/tree/master/examples)
-folder.
+folder. You can simply execute the examples, you do not to globally install 
+_PyNNLess_.
+
+If you want to install _PyNNLess_ on your system you can do so using the
+following command (execute from the directory into which you have downloaded
+_PyNNLess_):
+```bash
+sudo pip install pynnless
+```
+
+It can be uninstalled with the following command:
+```bash
+sudo pip uninstall pynnless
+```
 
 ### Further information
 
