@@ -18,6 +18,11 @@
 
 # Import the "PyNNLess" class to the top-level package namespace
 from pynnless import PyNNLess
+from pynnless import PyNNLessException
+from pynnless import PyNNLessVersionException
 
 # Current version of the "PyNNLess" wrapper
 __version__ = "1.0.0"
+
+# Export all classes
+__all__ = ['PyNNLess', 'PyNNLessException', 'PyNNLessVersionException']
