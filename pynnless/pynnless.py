@@ -475,6 +475,19 @@ class PyNNLess:
         return {"data": np.zeros((population.size, 0), dtype=np.float32),
                 "time": np.zeros((0), dtype=np.float32)}
 
+    @staticmethod
+    def _get_default_timestep():
+        """
+        Returns the value of the "DEFAULT_TIMESTEP" attribute, which is stored
+        in different places for multiple PyNN versions.
+        """
+        if hasattr(pyNN.common, "DEFAULT_TIMESTEP"):
+            return pyNN.common.DEFAULT_TIMESTEP
+        elif (hasattr(pyNN.common, "control")
+                and hasattr(pyNN.common.control, "DEFAULT_TIMESTEP")):
+            return pyNN.common.control.DEFAULT_TIMESTEP
+        raise PyNNLessException("DEFAULT_TIMESTEP not defined")
+
     def run(self, network, time = 1000):
         """
         Builds and runs the network described in the "network" structure.
@@ -504,7 +517,7 @@ class PyNNLess:
 
         # Fetch the simulation timestep, work around bug #123 in sPyNNaker
         # See https://github.com/SpiNNakerManchester/sPyNNaker/issues/123
-        timestep = pyNN.common.DEFAULT_TIMESTEP
+        timestep = self._get_default_timestep()
         if (hasattr(self.sim, "get_time_step")):
             timestep = self.sim.get_time_step()
         elif ("timestep" in self.setup):

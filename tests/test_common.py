@@ -27,6 +27,13 @@ from pynnless import *
 
 class TestCommon(unittest.TestCase):
 
+    def test_get_default_timestep(self):
+        """
+        Tests whether "_get_default_timestep" works correctly (should always
+        return 0.1 in all current pyNN versions).
+        """
+        self.assertEqual(0.1, PyNNLess._get_default_timestep())
+
     def test_check_version(self):
         """
         Tests whether the "_check_version" method works as expected.
