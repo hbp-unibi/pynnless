@@ -1,4 +1,4 @@
-[PyNNLess Logo](https://raw.github.com/hbp-sanncs/pynless/master/docu/logo.png)
+[PyNNLess Logo](https://raw.github.com/hbp-sanncs/pynnless/master/docu/logo.png)
 # PyNNLess
 
 ## About
