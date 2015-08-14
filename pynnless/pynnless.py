@@ -45,9 +45,9 @@ class PyNNLessVersionException(Exception):
     """
     pass
 
-class PyNNLessBackendException(Exception):
+class PyNNLessSimulatorException(Exception):
     """
-    Used to find a not-compatible backend.
+    Thrown when the given simulator is not found.
     """
     pass
 
@@ -174,7 +174,7 @@ class PyNNLess:
                 break
             except ImportError:
                 if (i + 1 == len(imports)):
-                    raise PyNNLessBackendException(
+                    raise PyNNLessSimulatorException(
                         "Could not find simulator, tried to load the " +
                         "following modules: " + str(imports) + ". Simulators " +
                         "which seem to bee supported on this machine are: " +
