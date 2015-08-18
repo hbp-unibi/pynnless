@@ -31,7 +31,9 @@ import subprocess
 # List all ".py" files in the examples folder and run them
 examples = os.path.join(os.path.dirname(os.path.abspath(__file__)),
         "examples")
-for example in [f for f in os.listdir(examples) if f[-3:] == ".py"]:
+files = [f for f in os.listdir(examples) if f[-3:] == ".py"]
+files.sort()
+for example in files:
     cmd = ["python", os.path.join(examples, example)] + sys.argv[1:]
     print("run.py: Executing " + cmd[1])
     if subprocess.call(cmd) != 0:
