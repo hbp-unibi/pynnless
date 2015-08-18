@@ -29,5 +29,5 @@ for example in [f for f in os.listdir(examples) if f[-3:] == ".py"]:
     print("run.py: Executing " + cmd[1])
     if subprocess.call(cmd) != 0:
         print("run.py: Previous command exited with error, aborting.")
-        break
+        sys.exit(1)
 print("run.py: Done.")
