@@ -17,6 +17,13 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+Sequentially runs all examples, aborts if one example fails. This program exists
+for two reasons: On the one hand it acts as kind of a integration test, on the
+other hand it allows to directly run the PyNNLess repository on the HBP
+Neuromorphic Platform.
+"""
+
 import sys
 import os
 import subprocess
