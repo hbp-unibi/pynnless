@@ -46,8 +46,8 @@ class TestCommon(unittest.TestCase):
 
     def test_lookup_simulator(self):
         """
-        Tests the static lookup_simulator method and checks whether all special
-        cases are covered.
+        Tests the static "_lookup_simulator" method and checks whether all
+        special cases are covered.
         """
         self.assertEqual(("bla", ["pyNN.bla"]),
                 PyNNLess._lookup_simulator("bla"))
@@ -68,6 +68,37 @@ class TestCommon(unittest.TestCase):
                 PyNNLess._lookup_simulator("pyhmf"))
         self.assertEqual(("nmpm1", ["pyNN.pyhmf", "pyNN.nmpm1", "pyhmf"]),
                 PyNNLess._lookup_simulator("pyNN.pyhmf"))
+
+    def test_eval_setup(self):
+        """
+        Tests the static "_eval_setup" method.
+        """
+        setup = {
+            "a": "$sim[\"a\"]",
+            "b": "$version",
+            "c": "$simulator",
+            "d": "$1 if (simulator == \"test\") else 2",
+            "e": "\\$sim.a",
+            "f": "\\\\$sim.a",
+        }
+        a = PyNNLess._eval_setup(setup, {"a": "test"}, "test", 7)
+        b = PyNNLess._eval_setup(setup, {"a": "bla"}, "test2", 8)
+        self.assertEqual({
+            "a": "test",
+            "b": 7,
+            "c": "test",
+            "d": 1,
+            "e": "$sim.a",
+            "f": "\\$sim.a"
+        }, a)
+        self.assertEqual({
+            "a": "bla",
+            "b": 8,
+            "c": "test2",
+            "d": 2,
+            "e": "$sim.a",
+            "f": "\\$sim.a"
+        }, b)
 
     def test_build_connections(self):
         """

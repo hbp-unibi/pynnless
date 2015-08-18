@@ -96,6 +96,26 @@ class PyNNLess:
         "nmpm1": ["pyhmf"],
     }
 
+    # Map containing certain default setup parameters for the various
+    # (normalized) backends. Setup parameters starting with $ are evaluated as
+    # Python code.
+    DEFAULT_SETUPS = {
+        "nest": {
+            # No default setup parameters needed
+        },
+        "ess": {
+            "ess_params": {"perfectSynapseTrafo": True},
+            "ignoreDatabase": True,
+            "ignoreHWParameterRanges": False,
+            "hardware": "$sim.hardwareSetup[\"one-hicann\"]",
+            "speedupFactor": 10000,
+            "useSystemSim": True,
+        },
+        "nmmc1": {
+            "timestep": 1.0
+        }
+    }
+
     # Actual simulator instance, loaded by the "load" method.
     sim = None
 
@@ -154,6 +174,13 @@ class PyNNLess:
             imports.extend(cls.SIMULATOR_IMPORT_MAP[normalized])
         return (normalized, unique(imports))
 
+    @classmethod
+    def normalized_simulator_name(cls, simulator):
+        """
+        Returns the normalized name for the given simulator
+        """
+        return cls._lookup_simulator(simulator)[0]
+
     @staticmethod
     def _load_simulator(simulator):
         """
@@ -182,12 +209,65 @@ class PyNNLess:
         return (sim, normalized)
 
     @staticmethod
-    def _setup_simulator(sim, setup):
+    def _eval_setup(setup, sim, simulator, version):
+        """
+        Passes dictionary entries starting with "$" through the Python "eval"
+        function. A "\\$" at the beginning of the line is replaced with "$"
+        without evaluation, a "\\\\" at the beginning of the line is replaced
+        with "\\".
+
+        :param setup: setup dictionary to which the evaluation should be
+        applied.
+        :param sim: simulation object that should be made available to the
+        evaluated code.
+        :param simulator: simulator name that should be made available to the
+        evaluated code.
+        :param version: PyNN version number that should be made available to the
+        evaluated code.
+        """
+        res = {}
+        for key, value in setup.items():
+            if (isinstance(value, str)):
+                if (len(value) >= 1 and value[0] == "$"):
+                    value = eval(value[1:])
+                elif (len(value) >= 2 and value[0:2] == "\\$"):
+                    value = "$" + value[2:]
+                elif (len(value) >= 2 and value[0:2] == "\\\\"):
+                    value = "\\" + value[2:]
+            res[key] = value
+        return res
+
+    @classmethod
+    def _build_setup(cls, setup, sim, simulator, version):
+        """
+        Assembles the setup for the given simulator using the default setup and
+        the setup given by the user.
+        """
+
+        # Evaluate the user setup
+        user_setup = cls._eval_setup(setup, sim, simulator, version)
+
+        # Evaluate the default setup for the simulator
+        default_setup = {}
+        if (simulator in cls.DEFAULT_SETUPS):
+            default_setup = cls._eval_setup(cls.DEFAULT_SETUPS[simulator], sim,
+                    simulator, version)
+
+        # Merge the user setup into the default setup and return the result
+        default_setup.update(user_setup)
+        return default_setup
+
+    @classmethod
+    def _setup_simulator(cls, setup, sim, simulator, version):
         """
         Internally used to setup the simulator with the given setup parameters.
 
         :param setup: setup dictionary to be passed to the simulator setup.
         """
+
+        # Assemble the setup
+        setup = cls._build_setup(setup, sim, simulator, version)
+
         # PyNN 0.7 compatibility hack: Update min_delay/timestep if only one
         # of the values is set
         if ((not "min_delay" in setup) and ("timestep" in setup)):
@@ -240,7 +320,8 @@ class PyNNLess:
 
         self.version = self._check_version(pyNN.__version__)
         self.sim, self.simulator = self._load_simulator(simulator)
-        self.setup = self._setup_simulator(self.sim, setup)
+        self.setup = self._setup_simulator(setup, self.sim, self.simulator,
+                self.version)
 
         logger.info("Loaded and successfully set up simulator \""
             + self.simulator + "\"")
@@ -327,7 +408,8 @@ class PyNNLess:
             if (is_source and (self.simulator == "ess"
                     or self.simulator == "nmpm1")):
                 res = self.sim.Population(count, type_)
-                res.tset("spike_times", params["spike_times"])
+                res.tset("spike_times", np.asarray([params["spike_times"]
+                        for _ in xrange(count)]))
             else:
                 res = self.sim.Population(count, type_, params)
             if (not is_source):
@@ -518,7 +600,8 @@ class PyNNLess:
         # Fetch the simulation timestep, work around bug #123 in sPyNNaker
         # See https://github.com/SpiNNakerManchester/sPyNNaker/issues/123
         timestep = self._get_default_timestep()
-        if (hasattr(self.sim, "get_time_step")):
+        if (hasattr(self.sim, "get_time_step") and (not self.simulator == "ess"
+                or self.simulator == "nmpm1")):
             timestep = self.sim.get_time_step()
         elif ("timestep" in self.setup):
             timestep = self.setup["timestep"]
