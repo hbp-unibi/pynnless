@@ -436,6 +436,10 @@ class PyNNLess:
             # Setup recording
             res.record(record)
 
+        # Workaround bug in NMPM1, "size" attribute does not exist
+        if (not hasattr(res, "size")):
+            setattr(res, "size", count)
+
         return res
 
     @staticmethod
