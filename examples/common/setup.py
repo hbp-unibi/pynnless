@@ -30,10 +30,18 @@ logging.basicConfig(level=logging.INFO)
 import sys
 import os
 import __main__
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(os.path.join(os.path.dirname(__main__.__file__), ".."))
 
 # Import PyNNLess
 from pynnless import PyNNLess as pl
+
+# Assemble the script output file name
+outpath = os.path.join(os.path.dirname(__main__.__file__), "out")
+if not os.path.exists(outpath):
+    os.makedirs(outpath)
+outfile = os.path.join(outpath,
+        os.path.basename(os.path.splitext(__main__.__file__)[0] +
+            "_" + pl.normalized_simulator_name(sys.argv[1]) + ".txt"))
 
 # Check the command line arguments
 print("")

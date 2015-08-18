@@ -50,7 +50,7 @@ res = sim.run({
                 # Note that "record" may also be an array with multiple signals
                 "count": 1,
                 "type": pl.TYPE_IF_COND_EXP,
-                "record": pl.SIG_SPIKES,
+                "record": [pl.SIG_SPIKES, pl.SIG_V],
                 "params": common.params.IF_cond_exp # Use more compatible params
             }
         ],
@@ -62,6 +62,19 @@ res = sim.run({
     }, 100.0)
 print("Done!")
 
-# Print the output spikes (population 1, spikes, neuron 0)
-print("Spike Times: " + str(res[1]["spikes"][0]))
+# Write the membrane potential for each neuron to disk (first column is time)
+print("Writing membrane potential to " + common.setup.outfile)
+f = open(common.setup.outfile, "w")
+
+# Iterate over all sample times
+for i in xrange(len(res[1]["v_t"])):
+    # Write the current sample time
+    f.write(str(res[1]["v_t"][i]))
+
+    # Iterate over all neurons in the population and write the value for this
+    # sample time
+    for j in xrange(len(res[1]["v"])):
+        f.write("\t" + str(res[1]["v"][j][i]))
+    f.write("\n")
+f.close()
 
