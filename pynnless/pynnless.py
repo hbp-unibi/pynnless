@@ -401,16 +401,15 @@ class PyNNLess:
         # Create the output population, in case this is not a source population,
         # also force the neuron membrane potential to be initialized with the
         # neuron membrane potential.
-        res = None
+        res = self.sim.Population(count, type_, params)
         if (self.version == 7):
-            # Work around bug with setting spike_times for SpikeSourceArray in
-            # ESS and NMPM1
-            res = self.sim.Population(count, type_, params)
             # Initialize membrane potential to v_rest, work around
             # "need more PhD-students"-exception on NMPM1 (where this condition
             # is fulfilled anyways)
             if ((not is_source) and (self.simulator != "nmpm1")):
                 res.initialize("v", params["v_rest"])
+
+            # Setup recording
             if (self.SIG_SPIKES in record):
                 if (is_source and self.simulator == "spiNNaker"):
                     # Workaround for bug #122 in sPyNNaker
@@ -428,13 +427,14 @@ class PyNNLess:
             if ((self.SIG_GE in record) or (self.SIG_GI in record)):
                 res.record_gsyn()
         elif (self.version == 8):
-            res = self.sim.Population(count, type_, params)
-            res.record(record)
             # Initialize membrane potential to v_rest, work around
             # "need more PhD-students"-exception on NMPM1 (where this condition
             # is fulfilled anyways)
             if ((not is_source) and (self.simulator != "nmpm1")):
                     res.initialize(v=params["v_rest"])
+
+            # Setup recording
+            res.record(record)
 
         return res
 
