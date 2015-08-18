@@ -62,9 +62,6 @@ res = sim.run({
     }, 1000.0)
 print("Done!")
 
-# Print the output spikes (population 1, spikes, neuron 0)
-print("Spike Times: " + str(res[1]["spikes"][0]))
-
 # Write the spike times for each neuron to disk (each row contains the spike
 # times of a single corresponding neuron).
 print("Writing spike times to " + common.setup.outfile)
