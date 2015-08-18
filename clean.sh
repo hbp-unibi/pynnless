@@ -20,7 +20,8 @@ find -depth \(\
 			   -name "*.backup"\
 			-o -name "*~"\
 			-o -name "*.pyc"\
-			-o -wholename "*examples/logfile.txt"\
+			-o -name "logfile.txt"\
+			-o -wholename "*examples/out*"\
 			-o -wholename "*examples/fpga_conf*"\
 			-o -wholename "*examples/reports*"\
 			-o -wholename "*examples/application_generated_data*"\
