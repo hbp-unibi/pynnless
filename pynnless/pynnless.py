@@ -406,7 +406,10 @@ class PyNNLess:
             # Work around bug with setting spike_times for SpikeSourceArray in
             # ESS and NMPM1
             res = self.sim.Population(count, type_, params)
-            if (not is_source):
+            # Initialize membrane potential to v_rest, work around
+            # "need more PhD-students"-exception on NMPM1 (where this condition
+            # is fulfilled anyways)
+            if ((not is_source) and (self.simulator != "nmpm1")):
                 res.initialize("v", params["v_rest"])
             if (self.SIG_SPIKES in record):
                 if (is_source and self.simulator == "spiNNaker"):
@@ -426,11 +429,12 @@ class PyNNLess:
                 res.record_gsyn()
         elif (self.version == 8):
             res = self.sim.Population(count, type_, params)
-            if (not is_source):
-                # Work around "need more PhD-students"-exception in NMPM1
-                if (self.simulator != "nmpm1"):
-                    res.initialize(v=params["v_rest"])
             res.record(record)
+            # Initialize membrane potential to v_rest, work around
+            # "need more PhD-students"-exception on NMPM1 (where this condition
+            # is fulfilled anyways)
+            if ((not is_source) and (self.simulator != "nmpm1")):
+                    res.initialize(v=params["v_rest"])
 
         return res
 
