@@ -427,7 +427,9 @@ class PyNNLess:
         elif (self.version == 8):
             res = self.sim.Population(count, type_, params)
             if (not is_source):
-                res.initialize(v=params["v_rest"])
+                # Work around "need more PhD-students"-exception in NMPM1
+                if (self.simulator != "nmpm1"):
+                    res.initialize(v=params["v_rest"])
             res.record(record)
 
         return res
