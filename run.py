@@ -26,7 +26,8 @@ examples = os.path.join(os.path.dirname(os.path.abspath(__file__)),
         "examples")
 for example in [f for f in os.listdir(examples) if f[-3:] == ".py"]:
     cmd = ["python", os.path.join(examples, example)] + sys.argv[1:]
+    print("run.py: Executing " + cmd[1])
     if subprocess.call(cmd) != 0:
-        print("Previous command exited with error, aborting.")
+        print("run.py: Previous command exited with error, aborting.")
         break
-
+print("run.py: Done.")
