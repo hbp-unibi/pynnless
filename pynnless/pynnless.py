@@ -623,6 +623,12 @@ class PyNNLess:
         # Run the simulation
         self.sim.run(time)
 
+        # End the simulation to allow retrieval of the recorded results on NMPM1
+        ended = False
+        if (self.simulator == "nmpm1"):
+            self.sim.end()
+            ended = True
+
         # Gather the recorded data and store it in the result structure
         res = [{} for _ in xrange(population_count)]
         for i in xrange(population_count):
@@ -635,8 +641,9 @@ class PyNNLess:
                         res[i][signal] = data["data"]
                         res[i][signal + "_t"] = data["time"]
 
-        # Cleanup after the simulation ran
-        self.sim.end()
+        # End the simulation if this has not been done yet
+        if (not ended):
+            self.sim.end()
 
         return res;
 
