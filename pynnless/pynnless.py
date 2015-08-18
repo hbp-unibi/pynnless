@@ -408,8 +408,8 @@ class PyNNLess:
             if (is_source and (self.simulator == "ess"
                     or self.simulator == "nmpm1")):
                 res = self.sim.Population(count, type_)
-                res.tset("spike_times", np.asarray([params["spike_times"]
-                        for _ in xrange(count)]))
+                res.tset("spike_times", [params["spike_times"]
+                        for _ in xrange(count)])
             else:
                 res = self.sim.Population(count, type_, params)
             if (not is_source):
