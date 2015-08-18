@@ -55,7 +55,7 @@ res = sim.run({
             }
         ],
         "connections": [
-            # Connect from neuron 0:0 to 1:0 with synaptic weight of 0.045µS and
+            # Connect from neuron 0:0 to 1:0 with synaptic weight of 0.015µS and
             # no delay
             ((0, 0), (1, 0), 0.015, 0.0)
         ]
