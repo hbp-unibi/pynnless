@@ -244,16 +244,61 @@ class PyNNLess:
         """
         Performs additional setup necessary for NMPM1.
         """
+        import pylogging
         from pymarocco import PyMarocco
-        from pyhalbe.Coordinate import SynapseDriverOnHICANN, HICANNGlobal,\
-                X, Y, Enum, NeuronOnHICANN
+        from pyhalbe.Coordinate import SynapseDriverOnHICANN, HICANNGlobal, X,\
+                Y, Enum, NeuronOnHICANN
+        import Coordinate as C
+        import pyhalbe
+        import pyredman
+
+        pylogging.set_loglevel(pylogging.get("Default"),
+                pylogging.LogLevel.INFO)
+        pylogging.set_loglevel(pylogging.get("marocco"),
+                pylogging.LogLevel.DEBUG)
+        pylogging.set_loglevel(pylogging.get("sthal.HICANNConfigurator.Time"),
+                pylogging.LogLevel.DEBUG)
+
+        h = pyredman.Hicann()
+
+        def initBackend(fname):
+            lib = pyredman.loadLibrary(fname)
+            backend = pyredman.loadBackend(lib)
+            if not backend:
+                raise Exception('unable to load %s' % fname)
+            return backend
+
+        neuron_size = 4
 
         marocco = PyMarocco()
-        marocco.backend = PyMarocco.Hardware
+        marocco.placement.setDefaultNeuronSize(neuron_size)
+        marocco.placement.use_output_buffer7_for_dnc_input_and_bg_hack = True
+        marocco.placement.minSPL1 = False
+        if simulator_name == "ess":
+            marocco.backend = PyMarocco.ESS
+        else:
+            marocco.backend = PyMarocco.Hardware
         marocco.calib_backend = PyMarocco.XML
         marocco.calib_path = "/wang/data/calibration/wafer_0"
 
-        sim.setup(marocco=marocco, **setup)
+        marocco.roqt = "demo.roqt"
+        marocco.bio_graph = "demo.dot"
+
+        h276 = pyredman.Hicann()
+        h276.drivers().disable(SynapseDriverOnHICANN(C.Enum(6)))
+        h276.drivers().disable(SynapseDriverOnHICANN(C.Enum(20)))
+        h276.drivers().disable(SynapseDriverOnHICANN(C.Enum(102)))
+        h276.drivers().disable(SynapseDriverOnHICANN(C.Enum(104)))
+        marocco.defects.inject(HICANNGlobal(Enum(276)), h276)
+
+        h277 = pyredman.Hicann()
+        marocco.defects.inject(HICANNGlobal(Enum(277)), h277)
+
+        marocco.pll_freq = 100e6
+        marocco.bkg_gen_isi = 10000
+        marocco.only_bkg_visible = False
+
+        sim.setup(marocco=marocco)
 
     @classmethod
     def _setup_simulator(cls, setup, sim, simulator, version):
