@@ -281,7 +281,7 @@ class PyNNLess:
 
         # Try to setup the simulator
         if (simulator == "nmpm1"):
-            self._setup_nmpm1(sim, setup)
+            cls._setup_nmpm1(sim, setup)
         else:
             sim.setup(**setup)
         return setup
