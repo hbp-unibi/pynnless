@@ -42,7 +42,7 @@ res = sim.run({
                 "count": 1,
                 "type": pl.TYPE_SOURCE,
                 "params": {
-                    "spike_times": [j for i in ([[i, i + 4] for i in xrange(20, 30000, 500)]) for j in i],
+                    "spike_times": [20.0, 24.0],
                 }
             },
             {
@@ -59,7 +59,7 @@ res = sim.run({
             # no delay
             ((0, 0), (1, 0), 0.015, 0.0)
         ]
-    }, 30000.0)
+    }, 100.0)
 print("Done!")
 
 # Print the output spikes (population 1, spikes, neuron 0)
