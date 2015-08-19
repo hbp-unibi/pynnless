@@ -254,6 +254,22 @@ class PyNNLess:
         default_setup.update(user_setup)
         return default_setup
 
+    @staticmethod
+    def _setup_nmpm1(sim, setup):
+        """
+        Performs additional setup necessary for NMPM1.
+        """
+        from pymarocco import PyMarocco
+        from pyhalbe.Coordinate import SynapseDriverOnHICANN, HICANNGlobal,\
+                X, Y, Enum, NeuronOnHICANN
+
+        marocco = PyMarocco()
+        marocco.backend = PyMarocco.Hardware
+        marocco.calib_backend = PyMarocco.XML
+        marocco.calib_path = "/wang/data/calibration/wafer_0"
+
+        sim.setup(marocco=marocco, **setup)
+
     @classmethod
     def _setup_simulator(cls, setup, sim, simulator, version):
         """
@@ -279,7 +295,10 @@ class PyNNLess:
                 setup[key] = float(setup[key])
 
         # Try to setup the simulator
-        sim.setup(**setup)
+        if (simulator == "nmpm1"):
+            self._setup_nmpm1(sim, setup)
+        else:
+            sim.setup(**setup)
         return setup
 
     @classmethod
