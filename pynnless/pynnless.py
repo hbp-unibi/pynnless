@@ -295,10 +295,13 @@ class PyNNLess:
         marocco.bkg_gen_isi = 10000
         marocco.only_bkg_visible = False
 
-        sim.setup(marocco=marocco)
+        sim.setup(marocco=marocco, **setup)
 
-    @classmethod
-    def _setup_simulator(cls, setup, sim, simulator, version):
+        return {
+            "marocco": marocco
+        }
+
+    def _setup_simulator(self, setup, sim, simulator, version):
         """
         Internally used to setup the simulator with the given setup parameters.
 
@@ -306,7 +309,7 @@ class PyNNLess:
         """
 
         # Assemble the setup
-        setup = cls._build_setup(setup, sim, simulator, version)
+        setup = self._build_setup(setup, sim, simulator, version)
 
         # PyNN 0.7 compatibility hack: Update min_delay/timestep if only one
         # of the values is set
@@ -323,7 +326,7 @@ class PyNNLess:
 
         # Try to setup the simulator
         if (simulator == "nmpm1"):
-            cls._setup_nmpm1(sim, setup)
+            self._setup_nmpm1(sim, setup)
         else:
             sim.setup(**setup)
         return setup
@@ -441,6 +444,13 @@ class PyNNLess:
         # Workaround bug in NMPM1, "size" attribute does not exist
         if (not hasattr(res, "size")):
             setattr(res, "size", count)
+
+        # For NMPM1: register the population in the marocco instance
+        if (self.simulator == "nmpm1"):
+            from pyhalbe.Coordinate import SynapseDriverOnHICANN, HICANNGlobal,\
+                    X, Y, Enum, NeuronOnHICANN
+            self.backend_data["marocco"].placement.add(res,
+                    HICANNGlobal(Enum(276)))
 
         return res
 
@@ -589,6 +599,9 @@ class PyNNLess:
     # Copy of the setup parameters
     setup = {}
 
+    # Additional objects required by other backends
+    backend_data = {}
+
     # Currently loaded pyNN version (as an integer, either 7 or 8 for 0.7 and
     # 0.8 respectively)
     version = 0
@@ -690,12 +703,6 @@ class PyNNLess:
         # Run the simulation
         self.sim.run(time)
 
-        # End the simulation to allow retrieval of the recorded results on NMPM1
-        ended = False
-        if (self.simulator == "nmpm1"):
-            self.sim.end()
-            ended = True
-
         # Gather the recorded data and store it in the result structure
         res = [{} for _ in xrange(population_count)]
         for i in xrange(population_count):
@@ -709,8 +716,7 @@ class PyNNLess:
                         res[i][signal + "_t"] = data["time"]
 
         # End the simulation if this has not been done yet
-        if (not ended):
-            self.sim.end()
+        self.sim.end()
 
         return res
 
