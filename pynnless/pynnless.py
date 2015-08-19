@@ -274,10 +274,7 @@ class PyNNLess:
         marocco.placement.setDefaultNeuronSize(neuron_size)
         marocco.placement.use_output_buffer7_for_dnc_input_and_bg_hack = True
         marocco.placement.minSPL1 = False
-        if simulator_name == "ess":
-            marocco.backend = PyMarocco.ESS
-        else:
-            marocco.backend = PyMarocco.Hardware
+        marocco.backend = PyMarocco.Hardware
         marocco.calib_backend = PyMarocco.XML
         marocco.calib_path = "/wang/data/calibration/wafer_0"
 
