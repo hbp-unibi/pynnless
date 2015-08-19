@@ -555,6 +555,11 @@ class PyNNLess:
         spikes should be obtained.
         :param signal: name of the signal that should be returned.
         """
+        if (self.simulator == "nmpm1"):
+            logger.warning("nmpm1 does not support retrieving recorded " +
+                    "signals for now")
+            return {"data": np.zeros((population.size, 0), dtype=np.float32),
+                    "time": np.zeros((0), dtype=np.float32)}
         if (self.version == 7):
             if (signal == self.SIG_V):
                 return self._convert_pyNN7_signal(population.get_v(), 2,
