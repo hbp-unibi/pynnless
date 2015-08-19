@@ -113,18 +113,9 @@ class PyNNLess:
         }
     }
 
-    # Actual simulator instance, loaded by the "load" method.
-    sim = None
-
-    # Name of the simulator
-    simulator = ""
-
-    # Copy of the setup parameters
-    setup = {}
-
-    # Currently loaded pyNN version (as an integer, either 7 or 8 for 0.7 and
-    # 0.8 respectively)
-    version = 0
+    #
+    # Private methods
+    #
 
     @staticmethod
     def _check_version(version):
@@ -169,14 +160,8 @@ class PyNNLess:
             imports.append("pyNN." + normalized)
         if (normalized in cls.SIMULATOR_IMPORT_MAP):
             imports.extend(cls.SIMULATOR_IMPORT_MAP[normalized])
-        return (normalized, unique(imports))
 
-    @classmethod
-    def normalized_simulator_name(cls, simulator):
-        """
-        Returns the normalized name for the given simulator
-        """
-        return cls._lookup_simulator(simulator)[0]
+        return (normalized, unique(imports))
 
     @staticmethod
     def _load_simulator(simulator):
@@ -300,47 +285,6 @@ class PyNNLess:
         else:
             sim.setup(**setup)
         return setup
-
-    @classmethod
-    def simulators(cls):
-        """
-        Returns a list of simulators that seem to be supported on this machine.
-        """
-        res = []
-        for simulator in cls.SUPPORTED_SIMULATORS:
-            _, imports = PyNNLess._lookup_simulator(simulator)
-            for _import in imports:
-                try:
-                    loader = pkgutil.find_loader(_import)
-                    if (isinstance(loader, pkgutil.ImpLoader)):
-                        res.append(simulator)
-                        break
-                except ImportError:
-                    pass
-        return res
-
-    def __init__(self, simulator, setup = {}):
-        """
-        Tries to load the PyNN simulator with the given name. Throws an
-        exception if the simulator could not be found or no compatible PyNN
-        version is loaded. Calls the "setup" method with the given simulator
-        setup.
-
-        :param simulator: name of the PyNN backend that should be used. Has to
-        be the python module name stripped from the leading "pyNN.".
-        Additionally handles some of the (wrong) simulator names passed by the
-        HBP Neuromorphic Compute Platform and adds support for NMPM1.
-        :param setup: structure containing additional setup parameters to be
-        passed to the "setup" method.
-        """
-
-        self.version = self._check_version(pyNN.__version__)
-        self.sim, self.simulator = self._load_simulator(simulator)
-        self.setup = self._setup_simulator(setup, self.sim, self.simulator,
-                self.version)
-
-        logger.info("Loaded and successfully set up simulator \""
-            + self.simulator + "\"")
 
     def _build_population(self, population):
         """
@@ -519,7 +463,7 @@ class PyNNLess:
         tsidx = dict((ts[i], i) for i in xrange(len(ts)))
 
         # Create one result list for each neuron, containing exactly ts entries
-        ds = np.zeros((n, len(ts)), dtype=np.float32);
+        ds = np.zeros((n, len(ts)), dtype=np.float32)
         ds.fill(np.nan)
         for row in data:
             ds[int(row[0]), tsidx[np.float32(row[1])]] = row[idx]
@@ -590,6 +534,71 @@ class PyNNLess:
             return pyNN.common.control.DEFAULT_TIMESTEP
         raise PyNNLessException("DEFAULT_TIMESTEP not defined")
 
+    #
+    # Public interface
+    #
+
+    # Actual simulator instance, loaded by the "load" method.
+    sim = None
+
+    # Name of the simulator
+    simulator = ""
+
+    # Copy of the setup parameters
+    setup = {}
+
+    # Currently loaded pyNN version (as an integer, either 7 or 8 for 0.7 and
+    # 0.8 respectively)
+    version = 0
+
+    def __init__(self, simulator, setup = {}):
+        """
+        Tries to load the PyNN simulator with the given name. Throws an
+        exception if the simulator could not be found or no compatible PyNN
+        version is loaded. Calls the "setup" method with the given simulator
+        setup.
+
+        :param simulator: name of the PyNN backend that should be used. Has to
+        be the python module name stripped from the leading "pyNN.".
+        Additionally handles some of the (wrong) simulator names passed by the
+        HBP Neuromorphic Compute Platform and adds support for NMPM1.
+        :param setup: structure containing additional setup parameters to be
+        passed to the "setup" method.
+        """
+
+        self.version = self._check_version(pyNN.__version__)
+        self.sim, self.simulator = self._load_simulator(simulator)
+        self.setup = self._setup_simulator(setup, self.sim, self.simulator,
+                self.version)
+
+        logger.info("Loaded and successfully set up simulator \""
+            + self.simulator + "\"")
+
+    @classmethod
+    def simulators(cls):
+        """
+        Returns a list of simulators that seem to be supported on this machine.
+        """
+        res = []
+        for simulator in cls.SUPPORTED_SIMULATORS:
+            _, imports = PyNNLess._lookup_simulator(simulator)
+            for _import in imports:
+                try:
+                    loader = pkgutil.find_loader(_import)
+                    if (isinstance(loader, pkgutil.ImpLoader)):
+                        res.append(simulator)
+                        break
+                except ImportError:
+                    pass
+        return res
+
+    @classmethod
+    def normalized_simulator_name(cls, simulator):
+        """
+        Returns the normalized name for the given simulator
+        """
+        return cls._lookup_simulator(simulator)[0]
+
     def run(self, network, time = 1000):
         """
         Builds and runs the network described in the "network" structure.
@@ -612,7 +621,7 @@ class PyNNLess:
                 "network description")
 
         # Generate the neuron populations
-        population_count = len(network["populations"]);
+        population_count = len(network["populations"])
         populations = [None for _ in xrange(population_count)]
         for i in xrange(population_count):
             populations[i] = self._build_population(network["populations"][i])
@@ -653,7 +662,7 @@ class PyNNLess:
                     if (signal == self.SIG_SPIKES):
                         res[i][signal] = self._fetch_spikes(populations[i])
                     else:
-                        data = self._fetch_signal(populations[i], signal);
+                        data = self._fetch_signal(populations[i], signal)
                         res[i][signal] = data["data"]
                         res[i][signal + "_t"] = data["time"]
 
@@ -661,5 +670,5 @@ class PyNNLess:
         if (not ended):
             self.sim.end()
 
-        return res;
+        return res
 
