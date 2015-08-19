@@ -114,6 +114,10 @@ class PyNNLess:
         },
         "nmmc1": {
             "timestep": 1.0
+        },
+        "nmpm1": {
+            "neuron_size": 1,
+            "hicanns": xrange(352)
         }
     }
 
@@ -246,63 +250,33 @@ class PyNNLess:
     @staticmethod
     def _setup_nmpm1(sim, setup):
         """
-        Performs additional setup necessary for NMPM1.
+        Performs additional setup necessary for NMPM1. Creates a new Marocco
+        (MApping ROuting Calibration and COnfiguration for HICANN Wafers)
+        instance and sets it up. Marocco setup parameters were taken from
+        https://github.com/electronicvisions/hbp_platform_demo/blob/master/nmpm1/run.py
         """
-        import pylogging
         from pymarocco import PyMarocco
-        from pyhalbe.Coordinate import SynapseDriverOnHICANN, HICANNGlobal, X,\
-                Y, Enum, NeuronOnHICANN
-        import Coordinate as C
-        import pyhalbe
-        import pyredman
-
-        pylogging.set_loglevel(pylogging.get("Default"),
-                pylogging.LogLevel.INFO)
-        pylogging.set_loglevel(pylogging.get("marocco"),
-                pylogging.LogLevel.DEBUG)
-        pylogging.set_loglevel(pylogging.get("sthal.HICANNConfigurator.Time"),
-                pylogging.LogLevel.DEBUG)
-
-        h = pyredman.Hicann()
-
-        def initBackend(fname):
-            lib = pyredman.loadLibrary(fname)
-            backend = pyredman.loadBackend(lib)
-            if not backend:
-                raise Exception('unable to load %s' % fname)
-            return backend
-
-        neuron_size = 4
+        from pyhalbe.Coordinate import HICANNGlobal, Enum
 
         marocco = PyMarocco()
-        marocco.placement.setDefaultNeuronSize(neuron_size)
-        marocco.placement.use_output_buffer7_for_dnc_input_and_bg_hack = True
-        marocco.placement.minSPL1 = False
+        marocco.placement.setDefaultNeuronSize(setup["neuron_size"])
         marocco.backend = PyMarocco.Hardware
         marocco.calib_backend = PyMarocco.XML
         marocco.calib_path = "/wang/data/calibration/wafer_0"
-
-        marocco.roqt = "demo.roqt"
-        marocco.bio_graph = "demo.dot"
-
-        h276 = pyredman.Hicann()
-        h276.drivers().disable(SynapseDriverOnHICANN(C.Enum(6)))
-        h276.drivers().disable(SynapseDriverOnHICANN(C.Enum(20)))
-        h276.drivers().disable(SynapseDriverOnHICANN(C.Enum(102)))
-        h276.drivers().disable(SynapseDriverOnHICANN(C.Enum(104)))
-        marocco.defects.inject(HICANNGlobal(Enum(276)), h276)
-
-        h277 = pyredman.Hicann()
-        marocco.defects.inject(HICANNGlobal(Enum(277)), h277)
-
-        marocco.pll_freq = 100e6
         marocco.bkg_gen_isi = 10000
-        marocco.only_bkg_visible = False
+
+        hicanns = [HICANNGlobal(Enum(i)) for i in setup["hicanns"]]
+
+        # Delete non-standard setup parameters
+        del setup["neuron_size"]
+        del setup["hicanns"]
 
         sim.setup(marocco=marocco, **setup)
 
+        # Return the marocco object and a list containing all HICANN
         return {
-            "marocco": marocco
+            "marocco": marocco,
+            "hicanns": hicanns
         }
 
     def _setup_simulator(self, setup, sim, simulator, version):
@@ -451,10 +425,8 @@ class PyNNLess:
 
         # For NMPM1: register the population in the marocco instance
         if (self.simulator == "nmpm1"):
-            from pyhalbe.Coordinate import SynapseDriverOnHICANN, HICANNGlobal,\
-                    X, Y, Enum, NeuronOnHICANN
             self.backend_data["marocco"].placement.add(res,
-                    HICANNGlobal(Enum(276)))
+                    self.backend_data["hicanns"])
 
         return res
 
