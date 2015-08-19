@@ -93,7 +93,7 @@ class PyNNLess:
     SIMULATOR_IMPORT_MAP = {
         "ess": ["pyNN.hardware.brainscales"],
         "nmmc1": ["pyNN.spiNNaker"],
-        "nmpm1": ["pyhmf"],
+        "nmpm1": ["pyNN.hardware.hbp_pm"],
     }
 
     # List of simulators that need a call to "end" before the results are
@@ -116,7 +116,8 @@ class PyNNLess:
             "timestep": 1.0
         },
         "nmpm1": {
-            "neuron_size": 2
+#            "neuron_size": 1,
+#            "hicanns": xrange(352)
         }
     }
 
@@ -246,35 +247,38 @@ class PyNNLess:
         default_setup.update(user_setup)
         return default_setup
 
-    @staticmethod
-    def _setup_nmpm1(sim, setup):
-        """
-        Performs additional setup necessary for NMPM1. Creates a new Marocco
-        (MApping ROuting Calibration and COnfiguration for HICANN Wafers)
-        instance and sets it up. Marocco setup parameters were taken from
-        https://github.com/electronicvisions/hbp_platform_demo/blob/master/nmpm1/run.py
-        """
-        from pymarocco import PyMarocco
+#    @staticmethod
+#    def _setup_nmpm1(sim, setup):
+#        """
+#        Performs additional setup necessary for NMPM1. Creates a new Marocco
+#        (MApping ROuting Calibration and COnfiguration for HICANN Wafers)
+#        instance and sets it up. Marocco setup parameters were taken from
+#        https://github.com/electronicvisions/hbp_platform_demo/blob/master/nmpm1/run.py
+#        """
+#        from pymarocco import PyMarocco, Placement
+#        from pyhalbe.Coordinate import HICANNGlobal, Enum
 
-        neuron_size = setup["neuron_size"]
+#        marocco = PyMarocco()
+#        marocco.placement.setDefaultNeuronSize(setup["neuron_size"])
+#        marocco.backend = PyMarocco.Hardware
+#        marocco.calib_backend = PyMarocco.XML
+#        marocco.calib_path = "/wang/data/calibration/wafer_0"
+#        marocco.bkg_gen_isi = 10000
 
-        marocco = PyMarocco()
-        marocco.placement.setDefaultNeuronSize(neuron_size)
-        marocco.backend = PyMarocco.Hardware
-        marocco.calib_backend = PyMarocco.XML
-        marocco.calib_path = "/wang/data/calibration/wafer_0"
-        marocco.bkg_gen_isi = 10000
+#        hicanns = Placement.List([Coordinate.HICANNGlobal(Coordinate.Enum(i))
+#                for i in setup["hicanns"]])
 
-        # Delete non-standard setup parameters
-        del setup["neuron_size"]
+#        # Delete non-standard setup parameters
+#        del setup["neuron_size"]
+#        del setup["hicanns"]
 
-        sim.setup(marocco=marocco, **setup)
+#        sim.setup(marocco=marocco, **setup)
 
-        # Return the marocco object and a list containing all HICANN
-        return {
-            "marocco": marocco,
-            "neuron_size": neuron_size
-        }
+#        # Return the marocco object and a list containing all HICANN
+#        return {
+#            "marocco": marocco,
+#            "hicanns": hicanns
+#        }
 
     def _setup_simulator(self, setup, sim, simulator, version):
         """
@@ -300,10 +304,10 @@ class PyNNLess:
                 setup[key] = float(setup[key])
 
         # Try to setup the simulator
-        if (simulator == "nmpm1"):
-            self.backend_data = self._setup_nmpm1(sim, setup)
-        else:
-            sim.setup(**setup)
+#        if (simulator == "nmpm1"):
+#            self.backend_data = self._setup_nmpm1(sim, setup)
+#        else:
+        sim.setup(**setup)
         return setup
 
     def _build_population(self, population):
@@ -421,9 +425,9 @@ class PyNNLess:
             setattr(res, "size", count)
 
         # For NMPM1: register the population in the marocco instance
-        if (self.simulator == "nmpm1"):
-            self.backend_data["marocco"].placement.add(res,
-                    self.backend_data["neuron_size"])
+#        if (self.simulator == "nmpm1"):
+#            self.backend_data["marocco"].placement.add(res,
+#                  self.backend_data["hicanns"])
 
         return res
 
