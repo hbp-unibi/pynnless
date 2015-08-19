@@ -96,6 +96,10 @@ class PyNNLess:
         "nmpm1": ["pyhmf"],
     }
 
+    # List of simulators that need a call to "end" before the results are
+    # retrieved
+    PREMATURE_END_SIMULATORS = ["nmpm1"]
+
     # Map containing certain default setup parameters for the various
     # (normalized) backends. Setup parameters starting with $ are evaluated as
     # Python code.
@@ -703,6 +707,10 @@ class PyNNLess:
         # Run the simulation
         self.sim.run(time)
 
+        # End the simulation to fetch the results on nmpm1
+        if (self.simulator in self.PREMATURE_END_SIMULATORS):
+            self.sim.end()
+
         # Gather the recorded data and store it in the result structure
         res = [{} for _ in xrange(population_count)]
         for i in xrange(population_count):
@@ -716,7 +724,8 @@ class PyNNLess:
                         res[i][signal + "_t"] = data["time"]
 
         # End the simulation if this has not been done yet
-        self.sim.end()
+        if (not (self.simulator in self.PREMATURE_END_SIMULATORS)):
+            self.sim.end()
 
         return res
 
