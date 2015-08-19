@@ -116,7 +116,7 @@ class PyNNLess:
             "timestep": 1.0
         },
         "nmpm1": {
-            "neuron_size": 1
+            "neuron_size": 2
         }
     }
 
