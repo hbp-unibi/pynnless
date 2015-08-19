@@ -105,10 +105,7 @@ class PyNNLess:
         },
         "ess": {
             "ess_params": {"perfectSynapseTrafo": True},
-            "ignoreDatabase": True,
-            "ignoreHWParameterRanges": False,
             "hardware": "$sim.hardwareSetup[\"one-hicann\"]",
-            "speedupFactor": 10000,
             "useSystemSim": True,
         },
         "nmmc1": {
