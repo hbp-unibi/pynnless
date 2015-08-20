@@ -116,8 +116,8 @@ class PyNNLess:
             "timestep": 1.0
         },
         "nmpm1": {
-#            "neuron_size": 1,
-#            "hicanns": xrange(352)
+            "neuron_size": 2,
+            "hicann": 276
         }
     }
 
@@ -247,38 +247,39 @@ class PyNNLess:
         default_setup.update(user_setup)
         return default_setup
 
-#    @staticmethod
-#    def _setup_nmpm1(sim, setup):
-#        """
-#        Performs additional setup necessary for NMPM1. Creates a new Marocco
-#        (MApping ROuting Calibration and COnfiguration for HICANN Wafers)
-#        instance and sets it up. Marocco setup parameters were taken from
-#        https://github.com/electronicvisions/hbp_platform_demo/blob/master/nmpm1/run.py
-#        """
-#        from pymarocco import PyMarocco, Placement
-#        from pyhalbe.Coordinate import HICANNGlobal, Enum
+    @staticmethod
+    def _setup_nmpm1(sim, setup):
+        """
+        Performs additional setup necessary for NMPM1. Creates a new Marocco
+        (MApping ROuting Calibration and COnfiguration for HICANN Wafers)
+        instance and sets it up. Marocco setup parameters were taken from
+        https://github.com/electronicvisions/hbp_platform_demo/blob/master/nmpm1/run.py
+        """
+        from pymarocco import PyMarocco, Placement
+        from pyhalbe.Coordinate import HICANNGlobal, Enum
 
-#        marocco = PyMarocco()
-#        marocco.placement.setDefaultNeuronSize(setup["neuron_size"])
-#        marocco.backend = PyMarocco.Hardware
-#        marocco.calib_backend = PyMarocco.XML
-#        marocco.calib_path = "/wang/data/calibration/wafer_0"
-#        marocco.bkg_gen_isi = 10000
+        marocco = PyMarocco()
+        marocco.placement.setDefaultNeuronSize(setup["neuron_size"])
+        marocco.backend = PyMarocco.Hardware
+        marocco.calib_backend = PyMarocco.XML
+        marocco.calib_path = "/wang/data/calibration/wafer_0"
+        marocco.bkg_gen_isi = 10000
 
-#        hicanns = Placement.List([Coordinate.HICANNGlobal(Coordinate.Enum(i))
-#                for i in setup["hicanns"]])
+        hicann = [Coordinate.HICANNGlobal(Coordinate.Enum(setup["hicann"]))]
 
-#        # Delete non-standard setup parameters
-#        del setup["neuron_size"]
-#        del setup["hicanns"]
+        # Delete non-standard setup parameters
+        del setup["neuron_size"]
+        del setup["hicann"]
 
-#        sim.setup(marocco=marocco, **setup)
+        # Pass the marocco object and the actual setup to the simulation setup
+        # method
+        sim.setup(marocco=marocco, **setup)
 
-#        # Return the marocco object and a list containing all HICANN
-#        return {
-#            "marocco": marocco,
-#            "hicanns": hicanns
-#        }
+        # Return the marocco object and a list containing all HICANN
+        return {
+            "marocco": marocco,
+            "hicann": hicann
+        }
 
     def _setup_simulator(self, setup, sim, simulator, version):
         """
@@ -304,10 +305,10 @@ class PyNNLess:
                 setup[key] = float(setup[key])
 
         # Try to setup the simulator
-#        if (simulator == "nmpm1"):
-#            self.backend_data = self._setup_nmpm1(sim, setup)
-#        else:
-        sim.setup(**setup)
+        if (simulator == "nmpm1"):
+            self.backend_data = self._setup_nmpm1(sim, setup)
+        else:
+            sim.setup(**setup)
         return setup
 
     def _build_population(self, population):
@@ -425,9 +426,9 @@ class PyNNLess:
             setattr(res, "size", count)
 
         # For NMPM1: register the population in the marocco instance
-#        if (self.simulator == "nmpm1"):
-#            self.backend_data["marocco"].placement.add(res,
-#                  self.backend_data["hicanns"])
+        if (self.simulator == "nmpm1"):
+            self.backend_data["marocco"].placement.add(res,
+                  self.backend_data["hicann"])
 
         return res
 
