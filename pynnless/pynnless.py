@@ -93,7 +93,7 @@ class PyNNLess:
     SIMULATOR_IMPORT_MAP = {
         "ess": ["pyNN.hardware.brainscales"],
         "nmmc1": ["pyNN.spiNNaker"],
-        "nmpm1": ["pyNN.hardware.hbp_pm"],
+        "nmpm1": ["pyhmf"],
     }
 
     # List of simulators that need a call to "end" before the results are
