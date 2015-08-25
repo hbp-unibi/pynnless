@@ -22,13 +22,14 @@ to a PyNN 0.7 or 0.8 simulation. Introduces yet another abstraction layer to
 allow the description of a network independent of the actual PyNN version.
 """
 
+import importlib
+import logging
+import numpy as np
+import os
+import pkgutil
 import pyNN
 import pyNN.common
 import pyNN.standardmodels.cells
-import numpy as np
-import importlib
-import pkgutil
-import logging
 
 # Local logger
 logger = logging.getLogger("PyNNLess")
@@ -125,6 +126,79 @@ class PyNNLess:
     # Private methods
     #
 
+    # Redirects a given unix file handle to the given file name, returns a new
+    # file descriptor pointing at the old fd
+    @staticmethod
+    def _redirect_fd_to_file(fd, filename):
+        """
+        Redirects the given Unix file descriptor to a file with the given name.
+        """
+        old = os.dup(fd)
+        os.close(fd)
+        os.open(filename, os.O_WRONLY | os.O_CREAT)
+
+    # Redirects a given fd to another fd
+    @staticmethod
+    def _redirect_fd_to_fd(fd1, fd2):
+        """
+        Redirects the first (old) unix file descriptor to the second file
+        descriptor, the file which was previously known as fd1 will now be known
+        as fd2
+        """
+        os.close(fd2)
+        os.dup2(fd1, fd2)
+        os.close(fd1)
+
+    # Prints the last few lines of a file to stdout
+    def _tail(filename):
+        """
+        Prints the last 100 lines of the file with the given name.
+        """
+        with open(filename, 'r') as fd:
+            lines = fd.readlines()
+            if (len(lines) > 0):
+                logger.info("===")
+                logger.info("Output of file " + filename)
+                logger.info("---")
+                if (len(lines) > 100):
+                    logger.info("[...]")
+                logger.info(''.join()[-100:])
+                logger.info("===")
+
+    # Temporary file descriptors to the original stdout/stderr
+    oldstdout = None
+    oldstderr = None
+
+    def _redirect_io(self):
+        """
+        Redirects both stderr and stdout to some temporary files.
+        """
+        if (self.oldstdout == None):
+            self.oldstdout = self._redirect_fd_to_file(1, "stdout.tmp")
+        if (self.oldstderr == None):
+            self.oldstderr = self._redirect_fd_to_file(2, "stderr.tmp")
+
+    def _unredirect_io(self, tail=True):
+        """
+        Undos the redirection performed by _redirect_io and prints the last
+        few lines of both files (if the "tail" parameter is set ot true).
+        """
+        if (self.oldstdout != None):
+            sys.stdout.flush()
+            self._redirect_fd_to_fd(self.oldstdout, 1)
+            if (tail):
+                self._tail("stdout.tmp")
+            os.remove("stdout.tmp")
+            self.oldstdout = None
+
+        if (self.oldstderr != None):
+            sys.stderr.flush()
+            self._redirect_fd_to_fd(self.oldstderr, 2)
+            if (tail):
+                self._tail("stderr.tmp")
+            os.remove("stderr.tmp")
+            self.oldstderr = None
+
     @staticmethod
     def _check_version(version):
         """
@@ -187,6 +261,7 @@ class PyNNLess:
         normalized, imports = PyNNLess._lookup_simulator(simulator)
         for i in xrange(len(imports)):
             try:
+                self._redirect_io()
                 sim = importlib.import_module(imports[i])
                 break
             except ImportError:
@@ -196,6 +271,9 @@ class PyNNLess:
                         "following modules: " + str(imports) + ". Simulators " +
                         "which seem to bee supported on this machine are: " +
                         str(PyNNLess.simulators()))
+            finally:
+                # Set tail=False, do not print ANY clutter from the loader
+                self._unredirect_io(False)
         return (sim, normalized)
 
     @staticmethod
@@ -304,11 +382,16 @@ class PyNNLess:
             if (key in setup):
                 setup[key] = float(setup[key])
 
-        # Try to setup the simulator
-        if (simulator == "nmpm1"):
-            self.backend_data = self._setup_nmpm1(sim, setup)
-        else:
-            sim.setup(**setup)
+        # Try to setup the simulator, do not output the clutter from the
+        # simulators
+        try:
+            self._redirect_io()
+            if (simulator == "nmpm1"):
+                self.backend_data = self._setup_nmpm1(sim, setup)
+            else:
+                sim.setup(**setup)
+        finally:
+            self._unredirect_io()
         return setup
 
     def _build_population(self, population):
@@ -684,11 +767,15 @@ class PyNNLess:
                 self.sim.FromListConnector(descrs))
 
         # Run the simulation
-        self.sim.run(time)
+        try:
+            self._redirect_io()
+            self.sim.run(time)
 
-        # End the simulation to fetch the results on nmpm1
-        if (self.simulator in self.PREMATURE_END_SIMULATORS):
-            self.sim.end()
+            # End the simulation to fetch the results on nmpm1
+            if (self.simulator in self.PREMATURE_END_SIMULATORS):
+                self.sim.end()
+        finally:
+            self._unredirect_io()
 
         # Gather the recorded data and store it in the result structure
         res = [{} for _ in xrange(population_count)]
