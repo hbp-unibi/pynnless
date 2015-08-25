@@ -22,17 +22,29 @@ to a PyNN 0.7 or 0.8 simulation. Introduces yet another abstraction layer to
 allow the description of a network independent of the actual PyNN version.
 """
 
-import importlib
-import logging
-import numpy as np
-import os
-import pkgutil
+# PyNN libraries
 import pyNN
 import pyNN.common
 import pyNN.standardmodels.cells
+import numpy as np
+
+# Simulator loading and lookup
+import importlib
+import pkgutil
+
+# Logging
+import logging
+
+# For IO-redirection
+import os
+import sys
 
 # Local logger
 logger = logging.getLogger("PyNNLess")
+
+# Temporary file descriptors to the original stdout/stderr
+oldstdout = None
+oldstderr = None
 
 class PyNNLessException(Exception):
     """
@@ -133,9 +145,10 @@ class PyNNLess:
         """
         Redirects the given Unix file descriptor to a file with the given name.
         """
-        old = os.dup(fd)
+        newFd = os.dup(fd)
         os.close(fd)
         os.open(filename, os.O_WRONLY | os.O_CREAT)
+        return newFd
 
     # Redirects a given fd to another fd
     @staticmethod
@@ -150,54 +163,55 @@ class PyNNLess:
         os.close(fd1)
 
     # Prints the last few lines of a file to stdout
-    def _tail(filename):
+    @staticmethod
+    def _tail(filename, title):
         """
         Prints the last 100 lines of the file with the given name.
         """
         with open(filename, 'r') as fd:
             lines = fd.readlines()
             if (len(lines) > 0):
-                logger.info("===")
-                logger.info("Output of file " + filename)
-                logger.info("---")
+                logger.info("[" + title + "]")
                 if (len(lines) > 100):
                     logger.info("[...]")
-                logger.info(''.join()[-100:])
-                logger.info("===")
+                for line in lines[-100:]:
+                    logger.info(line.strip('\n\r'))
+                logger.info("[end]")
 
-    # Temporary file descriptors to the original stdout/stderr
-    oldstdout = None
-    oldstderr = None
-
-    def _redirect_io(self):
+    @classmethod
+    def _redirect_io(cls):
         """
         Redirects both stderr and stdout to some temporary files.
         """
-        if (self.oldstdout == None):
-            self.oldstdout = self._redirect_fd_to_file(1, "stdout.tmp")
-        if (self.oldstderr == None):
-            self.oldstderr = self._redirect_fd_to_file(2, "stderr.tmp")
+        global oldstdout, oldstderr
+        if (oldstdout == None):
+            oldstdout = cls._redirect_fd_to_file(1, "stdout.tmp")
+        if (oldstderr == None):
+            oldstderr = cls._redirect_fd_to_file(2, "stderr.tmp")
 
-    def _unredirect_io(self, tail=True):
+    @classmethod
+    def _unredirect_io(cls, tail=True):
         """
         Undos the redirection performed by _redirect_io and prints the last
         few lines of both files (if the "tail" parameter is set ot true).
         """
-        if (self.oldstdout != None):
-            sys.stdout.flush()
-            self._redirect_fd_to_fd(self.oldstdout, 1)
-            if (tail):
-                self._tail("stdout.tmp")
-            os.remove("stdout.tmp")
-            self.oldstdout = None
+        global oldstdout, oldstderr
 
-        if (self.oldstderr != None):
+        if (oldstderr != None):
             sys.stderr.flush()
-            self._redirect_fd_to_fd(self.oldstderr, 2)
+            cls._redirect_fd_to_fd(oldstderr, 2)
             if (tail):
-                self._tail("stderr.tmp")
+                cls._tail("stderr.tmp", "stderr")
             os.remove("stderr.tmp")
-            self.oldstderr = None
+            oldstderr = None
+
+        if (oldstdout != None):
+            sys.stdout.flush()
+            cls._redirect_fd_to_fd(oldstdout, 1)
+            if (tail):
+                cls._tail("stdout.tmp", "stdout")
+            os.remove("stdout.tmp")
+            oldstdout = None
 
     @staticmethod
     def _check_version(version):
@@ -245,8 +259,8 @@ class PyNNLess:
 
         return (normalized, unique(imports))
 
-    @staticmethod
-    def _load_simulator(simulator):
+    @classmethod
+    def _load_simulator(cls, simulator):
         """
         Internally used to load the simulator with the specified name. Raises
         an PyNNLessException if the specified simulator cannot be loaded.
@@ -261,7 +275,7 @@ class PyNNLess:
         normalized, imports = PyNNLess._lookup_simulator(simulator)
         for i in xrange(len(imports)):
             try:
-                self._redirect_io()
+                cls._redirect_io()
                 sim = importlib.import_module(imports[i])
                 break
             except ImportError:
@@ -273,7 +287,7 @@ class PyNNLess:
                         str(PyNNLess.simulators()))
             finally:
                 # Set tail=False, do not print ANY clutter from the loader
-                self._unredirect_io(False)
+                cls._unredirect_io(False)
         return (sim, normalized)
 
     @staticmethod
@@ -761,37 +775,38 @@ class PyNNLess:
         # Build the connection matrices, and perform the actual connections
         connections = self._build_connections(network["connections"], timestep)
 
-        # Work around deprecated nest "ConvergentConnect" method
-        for pids, descrs in connections.items():
-            self.sim.Projection(populations[pids[0]], populations[pids[1]],
-                self.sim.FromListConnector(descrs))
-
-        # Run the simulation
         try:
             self._redirect_io()
+
+            # Perform the actual connections
+            for pids, descrs in connections.items():
+                self.sim.Projection(populations[pids[0]], populations[pids[1]],
+                    self.sim.FromListConnector(descrs))
+
+            # Run the simulation
             self.sim.run(time)
 
             # End the simulation to fetch the results on nmpm1
             if (self.simulator in self.PREMATURE_END_SIMULATORS):
                 self.sim.end()
+
+            # Gather the recorded data and store it in the result structure
+            res = [{} for _ in xrange(population_count)]
+            for i in xrange(population_count):
+                if "record" in network["populations"][i]:
+                    for signal in network["populations"][i]["record"]:
+                        if (signal == self.SIG_SPIKES):
+                            res[i][signal] = self._fetch_spikes(populations[i])
+                        else:
+                            data = self._fetch_signal(populations[i], signal)
+                            res[i][signal] = data["data"]
+                            res[i][signal + "_t"] = data["time"]
+
+            # End the simulation if this has not been done yet
+            if (not (self.simulator in self.PREMATURE_END_SIMULATORS)):
+                self.sim.end()
         finally:
             self._unredirect_io()
-
-        # Gather the recorded data and store it in the result structure
-        res = [{} for _ in xrange(population_count)]
-        for i in xrange(population_count):
-            if "record" in network["populations"][i]:
-                for signal in network["populations"][i]["record"]:
-                    if (signal == self.SIG_SPIKES):
-                        res[i][signal] = self._fetch_spikes(populations[i])
-                    else:
-                        data = self._fetch_signal(populations[i], signal)
-                        res[i][signal] = data["data"]
-                        res[i][signal + "_t"] = data["time"]
-
-        # End the simulation if this has not been done yet
-        if (not (self.simulator in self.PREMATURE_END_SIMULATORS)):
-            self.sim.end()
 
         return res
 
