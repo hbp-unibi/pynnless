@@ -39,6 +39,11 @@ import logging
 import os
 import sys
 
+# Own classes
+import pynnless_builder as builder
+import pynnless_constants as const
+import pynnless_exceptions as exceptions
+
 # Local logger
 logger = logging.getLogger("PyNNLess")
 
@@ -46,43 +51,12 @@ logger = logging.getLogger("PyNNLess")
 oldstdout = None
 oldstderr = None
 
-class PyNNLessException(Exception):
-    """
-    Exception type used in the PyNNLess module.
-    """
-    pass
-
-class PyNNLessVersionException(Exception):
-    """
-    Indicates an incompatible PyNN version.
-    """
-    pass
-
-class PyNNLessSimulatorException(Exception):
-    """
-    Thrown when the given simulator is not found.
-    """
-    pass
-
 class PyNNLess:
     """
     The backend class is used as an abstraction to the actual PyNN backend,
     which may either be present in version 0.7 or 0.8. Furthermore, it
     constructs the network from a simple graph abstraction.
     """
-
-    # Constants for the supported neuron types
-    TYPE_SOURCE = "SpikeSourceArray"
-    TYPE_IF_COND_EXP = "IF_cond_exp"
-    TYPE_AD_EX = "EIF_cond_exp_isfa_ista"
-    TYPES = [TYPE_SOURCE, TYPE_IF_COND_EXP, TYPE_AD_EX]
-
-    # Constants for the quantities that can be recorded
-    SIG_SPIKES = "spikes"
-    SIG_V = "v"
-    SIG_GE = "gsyn_exc"
-    SIG_GI = "gsyn_inh"
-    SIGNALS = [SIG_SPIKES, SIG_V, SIG_GE, SIG_GI]
 
     # List containing all supported simulators. Other simulators may also be
     # supported if they follow the PyNN specification, however, these simulators
@@ -227,7 +201,7 @@ class PyNNLess:
             return 7
         elif (version[0:3] == '0.8'):
             return 8
-        raise PyNNLessVersionException("Unsupported PyNN version '"
+        raise exceptions.PyNNLessVersionException("Unsupported PyNN version '"
             + pyNN.__version__ + "', supported are pyNN 0.7 and 0.8")
 
     @classmethod
@@ -280,7 +254,7 @@ class PyNNLess:
                 break
             except ImportError:
                 if (i + 1 == len(imports)):
-                    raise PyNNLessSimulatorException(
+                    raise exceptions.PyNNLessSimulatorException(
                         "Could not find simulator, tried to load the " +
                         "following modules: " + str(imports) + ". Simulators " +
                         "which seem to bee supported on this machine are: " +
@@ -417,29 +391,21 @@ class PyNNLess:
         neurons within the population, the neuron type, the neuron parameters
         and whether the parameters should be recorded or not.
         """
-        # Read the neuron count, default to one
-        count = 1
-        if ("count" in population):
-            count = int(population["count"])
-        if (count <= 0):
-            raise PyNNLessException("Invalid population size: " + count)
+
+        # Convert the given population dictionary into a managed Population
+        # object
+        population = builder.Population(population)
+
+        # Fetch the neuron count
+        count = population["count"]
 
         # Translate the neuron types to the PyNN neuron type
-        type_name = None
-        type_ = None
-        is_source = False
-        if (not "type" in population):
-            raise PyNNLessException("'type' key not present in description")
-        elif (population["type"] in self.TYPES):
-            type_name = population["type"]
-            if (not hasattr(self.sim, type_name)):
-                raise PyNNLessException("Neuron type '" + type_name
-                        + "' not supported by backend.")
-            type_ = getattr(self.sim, type_name)
-            is_source = type_name == self.TYPE_SOURCE
-        else:
-            raise PyNNLessException("Invalid neuron type '" + type_name +
-                "' supported are " + str(self.TYPES))
+        type_name = population["type"]
+        if (not hasattr(self.sim, type_name)):
+            raise exceptions.PyNNLessException("Neuron type '" + type_name
+                    + "' not supported by backend.")
+        type_ = getattr(self.sim, type_name)
+        is_source = type_name == const.TYPE_SOURCE
 
         # Fetch the default parameters for this neuron type and merge them with
         # parameters given for this population. Due to a bug in sPyNNaker, we
@@ -451,34 +417,29 @@ class PyNNLess:
         # instead of a copy.
         params = dict(getattr(pyNN.standardmodels.cells,
                 type_name).default_parameters)
-        if ("params" in population):
-            for key, _ in params.items():
-                if (key in population["params"]):
+        for key, _ in params.items():
+            if (key in population["params"]):
+                # Convert integer parameters to floating point values, fixes bug
+                # with PyNN 0.7.5 and NEST 2.2.2
+                if isinstance(population["params"][key], int):
+                    params[key] = float(population["params"][key])
+                else:
                     params[key] = population["params"][key]
 
-            # Issue warnings about ignored parameters
-            for key, _ in population["params"].items():
-                if (not key in params):
-                    logger.warning("Given parameter '" + key + "' does not " +
-                        "exist for neuron type '" + type_name + "'. Value " +
-                        "will be ignored!")
+        # Issue warnings about ignored parameters
+        for key, _ in population["params"].items():
+            if (not key in params):
+                logger.warning("Given parameter '" + key + "' does not " +
+                    "exist for neuron type '" + type_name + "'. Value " +
+                    "will be ignored!")
 
         # Fetch the parameter dimensions that should be recorded for this
         # population, make sure the elements in "record" are sorted
-        record = []
-        if ("record" in population):
-            if isinstance(population["record"], str):
-                record = [population["record"]]
-            else:
-                record = list(population["record"])
-            record.sort()
-            for signal in record:
-                if (not signal in self.SIGNALS):
-                    logger.warning("Unknown signal \"" + signal
-                        + "\". May be ignored by the backend.")
-
-        # Write the sanitized population record back
-        population["record"] = record
+        record = population["record"]
+        for signal in record:
+            if (not signal in const.SIGNALS):
+                logger.warning("Unknown signal \"" + signal
+                    + "\". May be ignored by the backend.")
 
         # Create the output population, in case this is not a source population,
         # also force the neuron membrane potential to be initialized with the
@@ -495,7 +456,7 @@ class PyNNLess:
                     res.initialize("v", params["v_rest"])
 
                 # Setup recording
-                if (self.SIG_SPIKES in record):
+                if (const.SIG_SPIKES in record):
                     if (is_source and self.simulator == "spiNNaker"):
                         # Workaround for bug #122 in sPyNNaker
                         # https://github.com/SpiNNakerManchester/sPyNNaker/issues/122
@@ -507,9 +468,9 @@ class PyNNLess:
                             setattr(res, "__fake_spikes", [[] for _ in xrange(count)])
                     else:
                         res.record()
-                if (self.SIG_V in record):
+                if (const.SIG_V in record):
                     res.record_v()
-                if ((self.SIG_GE in record) or (self.SIG_GI in record)):
+                if ((const.SIG_GE in record) or (const.SIG_GI in record)):
                     res.record_gsyn()
             elif (self.version == 8):
                 # Initialize membrane potential to v_rest, work around
@@ -637,13 +598,13 @@ class PyNNLess:
             return {"data": np.zeros((population.size, 0), dtype=np.float32),
                     "time": np.zeros((0), dtype=np.float32)}
         if (self.version == 7):
-            if (signal == self.SIG_V):
+            if (signal == const.SIG_V):
                 return self._convert_pyNN7_signal(population.get_v(), 2,
                     population.size)
-            elif (signal == self.SIG_GE):
+            elif (signal == const.SIG_GE):
                 return self._convert_pyNN7_signal(population.get_gsyn(), 2,
                     population.size)
-            elif (signal == self.SIG_GI):
+            elif (signal == const.SIG_GI):
                 # Workaround in bug #124 in sPyNNaker, see
                 # https://github.com/SpiNNakerManchester/sPyNNaker/issues/124
                 if (self.simulator != "spiNNaker"):
@@ -669,7 +630,7 @@ class PyNNLess:
         elif (hasattr(pyNN.common, "control")
                 and hasattr(pyNN.common.control, "DEFAULT_TIMESTEP")):
             return pyNN.common.control.DEFAULT_TIMESTEP
-        raise PyNNLessException("DEFAULT_TIMESTEP not defined")
+        raise exceptions.PyNNLessException("DEFAULT_TIMESTEP not defined")
 
     #
     # Public interface
@@ -754,11 +715,11 @@ class PyNNLess:
         # Make sure both the "populations" and "connections" arrays have been
         # supplied
         if (not "populations" in network):
-            raise PyNNLessException("\"populations\" key must be present in " +
-                "network description")
+            raise exceptions.PyNNLessException("\"populations\" key must be " +
+                "present in network description")
         if (not "connections" in network):
-            raise PyNNLessException("\"connections\" key must be present in " +
-                "network description")
+            raise exceptions.PyNNLessException("\"connections\" key must be " +
+                "present in network description")
 
         # Generate the neuron populations
         population_count = len(network["populations"])
@@ -799,8 +760,9 @@ class PyNNLess:
             res = [{} for _ in xrange(population_count)]
             for i in xrange(population_count):
                 if "record" in network["populations"][i]:
-                    for signal in network["populations"][i]["record"]:
-                        if (signal == self.SIG_SPIKES):
+                    population = builder.Population(network["populations"][i])
+                    for signal in population["record"]:
+                        if (signal == const.SIG_SPIKES):
                             res[i][signal] = self._fetch_spikes(populations[i])
                         else:
                             data = self._fetch_signal(populations[i], signal)
