@@ -331,7 +331,7 @@ class PyNNLess:
 #        marocco.calib_path = "/wang/data/calibration/wafer_0"
 #        marocco.bkg_gen_isi = 10000
 
-        hicann = HICANNGlobal(Enum(setup["hicann"]))
+#        hicann = HICANNGlobal(Enum(setup["hicann"]))
 
         # Delete non-standard setup parameters
         del setup["neuron_size"]
