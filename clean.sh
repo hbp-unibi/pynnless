@@ -23,8 +23,8 @@ find -depth \(\
 			-o -name "logfile.txt"\
 			-o -wholename "*examples/out*"\
 			-o -wholename "*examples/fpga_conf*"\
-			-o -wholename "*examples/reports*"\
-			-o -wholename "*examples/application_generated_data*"\
+			-o -wholename "*reports*"\
+			-o -wholename "*application_generated_data*"\
 			-o -wholename "*README.html"\
 		\) -a \! \(\
 			   -wholename "*.git/*"\
