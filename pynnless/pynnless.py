@@ -727,13 +727,13 @@ class PyNNLess:
         for i in xrange(population_count):
             populations[i] = self._build_population(network["populations"][i])
 
-        # Fetch the simulation timestep, work around bug #123 in sPyNNaker
-        # See https://github.com/SpiNNakerManchester/sPyNNaker/issues/123
+        # Fetch the simulation timestep, work around bugs #123 and #147 in
+        # sPyNNaker.
         # Do not call get_time_step() on the analogue hardware systems as this
         # will result in an exception.
         timestep = self._get_default_timestep()
-        if (hasattr(self.sim, "get_time_step") and (not self.simulator == "ess"
-                or self.simulator == "nmpm1")):
+        if (hasattr(self.sim, "get_time_step") and not (self.simulator == "ess"
+                or self.simulator == "nmpm1" or self.simulator == "nmmc1")):
             timestep = self.sim.get_time_step()
         elif ("timestep" in self.setup):
             timestep = self.setup["timestep"]
