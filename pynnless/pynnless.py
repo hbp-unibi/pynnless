@@ -321,17 +321,17 @@ class PyNNLess:
         instance and sets it up. Marocco setup parameters were taken from
         https://github.com/electronicvisions/hbp_platform_demo/blob/master/nmpm1/run.py
         """
-#        from pymarocco import PyMarocco, Placement
-#        from pyhalbe.Coordinate import HICANNGlobal, Enum
+        from pymarocco import PyMarocco, Placement
+        from pyhalbe.Coordinate import HICANNGlobal, Enum
 
-#        marocco = PyMarocco()
-#        marocco.placement.setDefaultNeuronSize(setup["neuron_size"])
-#        marocco.backend = PyMarocco.Hardware
-#        marocco.calib_backend = PyMarocco.XML
-#        marocco.calib_path = "/wang/data/calibration/wafer_0"
-#        marocco.bkg_gen_isi = 10000
+        marocco = PyMarocco()
+        marocco.placement.setDefaultNeuronSize(setup["neuron_size"])
+        marocco.backend = PyMarocco.Hardware
+        marocco.calib_backend = PyMarocco.XML
+        marocco.calib_path = "/wang/data/calibration/wafer_0"
+        marocco.bkg_gen_isi = 10000
 
-#        hicann = HICANNGlobal(Enum(setup["hicann"]))
+        hicann = HICANNGlobal(Enum(setup["hicann"]))
 
         # Delete non-standard setup parameters
         del setup["neuron_size"]
@@ -339,18 +339,13 @@ class PyNNLess:
 
         # Pass the marocco object and the actual setup to the simulation setup
         # method
-#        sim.setup(marocco=marocco, **setup)
+        sim.setup(marocco=marocco, **setup)
 
         # Return the marocco object and a list containing all HICANN
-#        return {
-#            "marocco": marocco,
-#            "hicann": hicann
-#        }
-        return None
-#        return {
-#            "marocco": None,
-#            "hicann": None
-#        }
+        return {
+            "marocco": marocco,
+            "hicann": hicann
+        }
 
     def _setup_simulator(self, setup, sim, simulator, version):
         """
