@@ -18,11 +18,28 @@
 
 # Import the "PyNNLess" class to the top-level package namespace
 from pynnless import PyNNLess
-from pynnless import PyNNLessException
-from pynnless import PyNNLessVersionException
+
+# Import the "Builder" classes ito the top-level package namespace
+from pynnless_builder import Population
+from pynnless_builder import SourcePopulation
+from pynnless_builder import IfCondExpPopulation
+from pynnless_builder import AdExPopulation
+from pynnless_builder import Network
+
+# Import all constants from "Constants"
+from pynnless_constants import *
+
+# Import the exception classes
+from pynnless_exceptions import PyNNLessException
+from pynnless_exceptions import PyNNLessVersionException
 
 # Current version of the "PyNNLess" wrapper
 __version__ = "1.0.0"
 
 # Export all classes
-__all__ = ['PyNNLess', 'PyNNLessException', 'PyNNLessVersionException']
+__all__ = [
+    'PyNNLess', 'PyNNLessException', 'PyNNLessVersionException', 'Population',
+    'SourcePopulation', 'IfCondExpPopulation', 'AdExPopulation', 'Network',
+    'SIGNALS', 'SIG_SPIKES', 'SIG_GE', 'SIG_GI', 'SIG_V', 'TYPES', 'TYPE_AD_EX',
+    'TYPE_SOURCE', 'TYPE_IF_COND_EXP'
+    ]
