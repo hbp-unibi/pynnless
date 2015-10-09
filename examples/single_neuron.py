@@ -45,7 +45,7 @@ res = sim.run(pynl.Network()
             pynl.IfCondExpPopulation(params=common.params.IF_cond_exp)
                 .record_spikes()
         )
-        .add_connection((0, 0), (1, 0), weight=0.03), # weight in µS
+        .add_connection((0, 0), (1, 0), weight=0.3), # weight in µS
         100.0)
 print("Done!")
 
