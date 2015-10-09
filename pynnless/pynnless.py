@@ -713,7 +713,7 @@ class PyNNLess:
             if (key in params):
                 # Convert integer parameters to floating point values, fixes bug
                 # with PyNN 0.7.5 and NEST 2.2.2
-                if isinstance(params, int):
+                if isinstance(params[key], int):
                     res[key] = float(params[key])
                 else:
                     res[key] = params[key]
