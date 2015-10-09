@@ -23,6 +23,7 @@ having to manually fiddle arround with a dictionary of arrays of dictionaries.
 
 import pynnless_exceptions as exceptions
 import pynnless_constants as const
+import pynnless_utils as utils
 
 class Population(dict):
     """
@@ -42,10 +43,10 @@ class Population(dict):
         :param record: Variables to be recorded
         :param params: Neuron population parameters
         """
-        self["count"] = data["count"] if "count" in data else count
-        self["type"] = data["type"] if "type" in data else _type
-        self["params"] = data["params"] if "params" in data else params
-        self["record"] = data["record"] if "record" in data else record
+        utils.init_key(self, data, "count", count)
+        utils.init_key(self, data, "type", _type)
+        utils.init_key(self, data, "params", params)
+        utils.init_key(self, data, "record", record)
 
         self._canonicalize()
         self._validate()
@@ -164,10 +165,8 @@ class Network(dict):
         :param populations: array of population descriptors.
         :param connections: array of connection descriptors.
         """
-        self["populations"] = data["populations"] if\
-                "populations" in data else populations
-        self["connections"]  = data["connections"] if\
-                "connections" in data else connections
+        utils.init_key(self, data, "populations", populations)
+        utils.init_key(self, data, "connections", connections)
 
     def add_population(self, data={}, count=1, _type=const.TYPE_IF_COND_EXP,
             params={}, record=[]):
@@ -178,6 +177,13 @@ class Network(dict):
     def add_populations(self, ps):
         self["populations"] = self["populations"] + ps
         return self
+
+    def add_source(self, spike_times=[]):
+        self["populations"].append(SourcePopulation(spike_times=spike_times))
+        return self
+
+    def add_neuron(self, params={}, _type=const.TYPE_IF_COND_EXP, record=[]):
+        return self.add_population(params=params, _type=_type, record=record)
 
     def add_connection(self, src, dst, weight=0.1, delay=0.0):
         self["connections"].append((src, dst, weight, delay))
