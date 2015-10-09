@@ -41,5 +41,5 @@ __all__ = [
     'PyNNLess', 'PyNNLessException', 'PyNNLessVersionException', 'Population',
     'SourcePopulation', 'IfCondExpPopulation', 'AdExPopulation', 'Network',
     'SIGNALS', 'SIG_SPIKES', 'SIG_GE', 'SIG_GI', 'SIG_V', 'TYPES', 'TYPE_AD_EX',
-    'TYPE_SOURCE', 'TYPE_IF_COND_EXP'
+    'TYPE_SOURCE', 'TYPE_IF_COND_EXP', 'PARAMETER_LIMITS'
     ]

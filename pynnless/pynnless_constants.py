@@ -29,3 +29,14 @@ SIG_GE = "gsyn_exc"
 SIG_GI = "gsyn_inh"
 SIGNALS = [SIG_SPIKES, SIG_V, SIG_GE, SIG_GI]
 
+PARAMETER_LIMITS = {
+    "a": {"min": 0.0},
+    "b": {"min": 0.0},
+    "cm": {"min": 1.0e-6},
+    "tau_m": {"min": 1.0e-6},
+    "tau_syn_E": {"min": 1.0e-6},
+    "tau_syn_I": {"min": 1.0e-6},
+    "tau_w": {"min": 1.0e-6},
+    "delta_T": {"min": 1.0e-6}
+}
+

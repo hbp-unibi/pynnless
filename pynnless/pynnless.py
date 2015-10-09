@@ -408,23 +408,8 @@ class PyNNLess:
         is_source = type_name == const.TYPE_SOURCE
 
         # Fetch the default parameters for this neuron type and merge them with
-        # parameters given for this population. Due to a bug in sPyNNaker, we
-        # need to use the default parameters provided by
-        # pyNN.standardmodels.cells
-        # See: https://github.com/SpiNNakerManchester/sPyNNaker/issues/120
-        #
-        # Note: The dict() is important, otherwise we seem to get a reference
-        # instead of a copy.
-        params = dict(getattr(pyNN.standardmodels.cells,
-                type_name).default_parameters)
-        for key, _ in params.items():
-            if (key in population["params"]):
-                # Convert integer parameters to floating point values, fixes bug
-                # with PyNN 0.7.5 and NEST 2.2.2
-                if isinstance(population["params"][key], int):
-                    params[key] = float(population["params"][key])
-                else:
-                    params[key] = population["params"][key]
+        # parameters given for this population.
+        params = self.merge_default_parameters(population["params"], type_name)
 
         # Issue warnings about ignored parameters
         for key, _ in population["params"].items():
@@ -699,6 +684,56 @@ class PyNNLess:
         Returns the normalized name for the given simulator
         """
         return cls._lookup_simulator(simulator)[0]
+
+    @staticmethod
+    def default_parameters(type_name):
+        """
+        Returns the default parameters for a certain neuron type.
+
+        :param type_name: is the neuron type name
+        """
+
+        # The "dict" makes sure a copy is returned
+        return dict(getattr(pyNN.standardmodels.cells, type_name)
+                .default_parameters)
+
+    @classmethod
+    def merge_default_parameters(cls, params, type_name):
+        """
+        Merges the given parameter object with the default parameters for the
+        given neuron type. Removes any keys from params that are not listed in
+        the default parameters.
+
+        :params params: parameters to be merged with the default parameters.
+        :params type_name: name of the neuron type for which the default
+        parameters should be retrieved.
+        """
+        res = cls.default_parameters(type_name)
+        for key, _ in res.items():
+            if (key in params):
+                # Convert integer parameters to floating point values, fixes bug
+                # with PyNN 0.7.5 and NEST 2.2.2
+                if isinstance(params, int):
+                    res[key] = float(params[key])
+                else:
+                    res[key] = params[key]
+        return res
+
+    @staticmethod
+    def clamp_parameters(params):
+        """
+        This method can be used to make sure that the given parameters fall
+        within their boundaries -- this is e.g. important if noise has been
+        added to the parameters.
+        """
+        res = dict(params)
+        for key in res:
+            if key in const.PARAMETER_LIMITS:
+                if "min" in const.PARAMETER_LIMITS[key]:
+                    res[key] = max(res[key], const.PARAMETER_LIMITS[key]["min"])
+                if "max" in const.PARAMETER_LIMITS[key]:
+                    res[key] = min(res[key], const.PARAMETER_LIMITS[key]["max"])
+        return res
 
     def run(self, network, time = 1000):
         """

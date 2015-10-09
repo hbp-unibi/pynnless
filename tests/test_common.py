@@ -44,6 +44,54 @@ class TestCommon(unittest.TestCase):
         self.assertRaises(PyNNLessVersionException,
                 lambda: PyNNLess._check_version("0.5"))
 
+    def test_default_parameters(self):
+        p1 = PyNNLess.default_parameters(TYPE_AD_EX)
+        p2 = PyNNLess.default_parameters(TYPE_IF_COND_EXP)
+        p3 = PyNNLess.default_parameters(TYPE_SOURCE)
+        p4 = PyNNLess.merge_default_parameters({"cm": 0.4}, TYPE_IF_COND_EXP)
+
+        self.assertTrue("cm" in p1)
+        self.assertTrue("tau_m" in p1)
+        self.assertTrue("tau_syn_E" in p1)
+        self.assertTrue("tau_syn_I" in p1)
+        self.assertTrue("tau_w" in p1)
+        self.assertTrue("v_reset" in p1)
+        self.assertTrue("v_thresh" in p1)
+        self.assertTrue("v_rest" in p1)
+        self.assertTrue("v_spike" in p1)
+        self.assertTrue("e_rev_E" in p1)
+        self.assertTrue("e_rev_I" in p1)
+        self.assertTrue("a" in p1)
+        self.assertTrue("b" in p1)
+        self.assertTrue("delta_T" in p1)
+
+        self.assertTrue("cm" in p2)
+        self.assertTrue("tau_m" in p2)
+        self.assertTrue("tau_syn_E" in p2)
+        self.assertTrue("tau_syn_I" in p2)
+        self.assertTrue("v_reset" in p2)
+        self.assertTrue("v_thresh" in p2)
+        self.assertTrue("v_rest" in p2)
+        self.assertTrue("e_rev_E" in p2)
+        self.assertTrue("e_rev_I" in p2)
+
+        self.assertTrue("spike_times" in p3)
+
+        self.assertTrue("cm" in p4)
+        self.assertTrue("tau_m" in p4)
+        self.assertTrue("tau_syn_E" in p4)
+        self.assertTrue("tau_syn_I" in p4)
+        self.assertTrue("v_reset" in p4)
+        self.assertTrue("v_thresh" in p4)
+        self.assertTrue("v_rest" in p4)
+        self.assertTrue("e_rev_E" in p4)
+        self.assertTrue("e_rev_I" in p4)
+        self.assertEqual(p4["cm"], 0.4)
+
+    def test_clamp_parameters(self):
+        res = PyNNLess.clamp_parameters({"tau_syn_E": -0.1})
+        self.assertEqual(res["tau_syn_E"], PARAMETER_LIMITS["tau_syn_E"]["min"])
+
     def test_lookup_simulator(self):
         """
         Tests the static "_lookup_simulator" method and checks whether all
