@@ -38,14 +38,9 @@ sim = pynl.PyNNLess(backend)
 # Population helper classes
 print("Simulating network...")
 res = sim.run(pynl.Network()
-        .add_population(
-            pynl.SourcePopulation(spike_times=[20.0, 24.0, 28.0, 32.0, 36.0])
-        )
-        .add_population(
-            pynl.IfCondExpPopulation(params=common.params.IF_cond_exp)
-                .record_spikes()
-        )
-        .add_connection((0, 0), (1, 0), weight=0.3), # weight in µS
+        .add_source(spike_times=[20.0, 24.0, 28.0, 32.0, 36.0])
+        .add_neuron(params=common.params.IF_cond_exp, record=pynl.SIG_SPIKES)
+        .add_connection((0, 0), (1, 0), weight=0.06), # weight in µS
         100.0)
 print("Done!")
 

@@ -35,9 +35,7 @@ sim = pynl.PyNNLess(backend)
 # Same as in "single_neuron.py", but record the voltage
 print("Simulating network...")
 res = sim.run(pynl.Network()
-        .add_population(
-            pynl.SourcePopulation(spike_times=[20.0, 24.0])
-        )
+        .add_source(spike_times=[20.0, 24.0])
         .add_population(
             pynl.IfCondExpPopulation(params=common.params.IF_cond_exp)
                 .record_spikes()

@@ -35,7 +35,7 @@ sim = pynl.PyNNLess(backend)
 # Create and run network with two populations: One population consisting of a
 # spike source arrays and another population consisting of neurons.
 print("Simulating network...")
-count = 1
+count = 10
 res = sim.run(pynl.Network()
         .add_population(
             pynl.SourcePopulation(
@@ -48,7 +48,7 @@ res = sim.run(pynl.Network()
                     params=common.params.IF_cond_exp)
                 .record_spikes()
         )
-        .add_connections([((0, i), (1, i), 0.3, 0.0) for i in xrange(count)]),
+        .add_connections([((0, i), (1, i), 0.06, 0.0) for i in xrange(count)]),
         1000.0)
 print("Done!")
 
