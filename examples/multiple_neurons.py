@@ -18,7 +18,8 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Builds and runs a neuron synfire chain.
+Simple network consisting of 100 disconnected neurons and a spike source array
+for each.
 """
 
 import sys
@@ -31,23 +32,23 @@ import pynnless as pynl
 backend = sys.argv[1]
 sim = pynl.PyNNLess(backend)
 
-# Build and run the synfire chain
+# Create and run network with two populations: One population consisting of a
+# spike source arrays and another population consisting of neurons.
 print("Simulating network...")
-synfire_len = 100
+count = 100
 res = sim.run(pynl.Network()
         .add_population(
-            pynl.SourcePopulation(spike_times=[10.0, 14.0])
+            pynl.SourcePopulation(
+                    count=count,
+                    spike_times=[100.0 * i for i in xrange(1, 9)])
         )
         .add_population(
             pynl.IfCondExpPopulation(
-                    count=synfire_len,
+                    count=count,
                     params=common.params.IF_cond_exp)
                 .record_spikes()
         )
-        .add_connections([
-            ((0, 0), (1, 0), 0.03, 0.0),
-            ((1, synfire_len - 1), (1, 0), 0.03, 0.0)
-        ] + [((1, i - 1), (1, i), 0.03, 0.0) for i in xrange(1, synfire_len)]),
+        .add_connections([((0, i), (1, i), 0.3, 0.0) for i in xrange(count)]),
         1000.0)
 print("Done!")
 
