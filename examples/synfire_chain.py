@@ -18,48 +18,36 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Simple usage example of PyNNLess: Creates a network containing a single LIF
-neuron and a spike source array. Records the output spikes of the LIF neuron.
+Builds and runs a neuron synfire chain.
 """
 
 import sys
 import common.setup # Common example code (checks command line parameters)
 import common.params # Parameters for the models which work with all systems
-from pynnless import PyNNLess as pl
+import pynnless as pynl
 
 # Create a new pl instance with the given backend
 backend = sys.argv[1]
-sim = pl(backend)
+sim = pynl.PyNNLess(backend)
 
-# Create and run network with two populations: One population consisting of a
-# spike source array and another population consisting of a single neuron. Note
-# that the constants used here are simply strings -- the whole network structure
-# could thus be stored in a simple JSON file
+# Build and run the synfire chain
 print("Simulating network...")
 synfire_len = 100
-res = sim.run({
-        "populations": [
-            {
-                "count": 1,
-                "type": pl.TYPE_SOURCE,
-                "params": {
-                    "spike_times": [10.0],
-                }
-            },
-            {
-                # Single LIF neuron with default parameters
-                # Note that "record" may also be an array with multiple signals
-                "count": synfire_len,
-                "type": pl.TYPE_IF_COND_EXP,
-                "record": pl.SIG_SPIKES,
-                "params": common.params.IF_cond_exp # Use more compatible params
-            }
-        ],
-        "connections": [
+res = sim.run(pynl.Network()
+        .add_population(
+            pynl.SourcePopulation(spike_times=[10.0, 14.0])
+        )
+        .add_population(
+            pynl.IfCondExpPopulation(
+                    count=synfire_len,
+                    params=common.params.IF_cond_exp)
+                .record_spikes()
+        )
+        .add_connections([
             ((0, 0), (1, 0), 0.03, 0.0),
             ((1, synfire_len - 1), (1, 0), 0.03, 0.0)
-        ] + [((1, i - 1), (1, i), 0.03, 0.0) for i in xrange(1, synfire_len)]
-    }, 1000.0)
+        ] + [((1, i - 1), (1, i), 0.03, 0.0) for i in xrange(1, synfire_len)]),
+        1000.0)
 print("Done!")
 
 # Write the spike times for each neuron to disk (each row contains the spike

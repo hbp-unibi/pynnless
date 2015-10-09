@@ -25,41 +25,28 @@ neuron and a spike source array. Records the output spikes of the LIF neuron.
 import sys
 import common.setup # Common example code (checks command line parameters)
 import common.params # Parameters for the models which work with all systems
-from pynnless import PyNNLess as pl
+import pynnless as pynl
 
 # Create a new pl instance with the given backend
 backend = sys.argv[1]
-sim = pl(backend)
+sim = pynl.PyNNLess(backend)
 
 # Create and run network with two populations: One population consisting of a
 # spike source array and another population consisting of a single neuron. Note
-# that the constants used here are simply strings -- the whole network structure
-# could thus be stored in a simple JSON file
+# that the network structure built here can be stored in a JSON file, all
+# objects are dictionaries. You are not required to use the Network and
+# Population helper classes
 print("Simulating network...")
-res = sim.run({
-        "populations": [
-            {
-                "count": 1,
-                "type": pl.TYPE_SOURCE,
-                "params": {
-                    "spike_times": [20.0, 24.0],
-                }
-            },
-            {
-                # Single LIF neuron with default parameters
-                # Note that "record" may also be an array with multiple signals
-                "count": 1,
-                "type": pl.TYPE_IF_COND_EXP,
-                "record": pl.SIG_SPIKES,
-                "params": common.params.IF_cond_exp # Use more compatible params
-            }
-        ],
-        "connections": [
-            # Connect from neuron 0:0 to 1:0 with synaptic weight of 0.015µS and
-            # no delay
-            ((0, 0), (1, 0), 0.015, 0.0)
-        ]
-    }, 100.0)
+res = sim.run(pynl.Network()
+        .add_population(
+            pynl.SourcePopulation(spike_times=[20.0, 24.0])
+        )
+        .add_population(
+            pynl.IfCondExpPopulation(params=common.params.IF_cond_exp)
+                .record_spikes()
+        )
+        .add_connection((0, 0), (1, 0), weight=0.015), # weight in µS
+        100.0)
 print("Done!")
 
 # Print the output spikes (population 1, spikes, neuron 0)

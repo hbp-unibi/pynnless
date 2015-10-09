@@ -33,7 +33,7 @@ import __main__
 sys.path.append(os.path.join(os.path.dirname(__main__.__file__), ".."))
 
 # Import PyNNLess
-from pynnless import PyNNLess as pl
+import pynnless as pynl
 
 # Check the command line arguments
 print("")
@@ -43,14 +43,14 @@ print("")
 if len(sys.argv) != 2:
     print("Usage: " + __main__.__file__ + " <SIMULATOR>")
     print
-    simulators = pl.simulators()
+    simulators = pynl.PyNNLess.simulators()
     if (len(simulators) ==  0):
         print("You do not seem to have any PyNN backends installed. To get "
             + "started you should install NEST.")
     else:
         print("Where <SIMULATOR> may for example be one of the following "
             + "(these simulators have been auto-detected on your system):")
-        print("\t" + str(pl.simulators()))
+        print("\t" + str(pynl.PyNNLess.simulators()))
     print
     sys.exit(1)
 
@@ -59,6 +59,6 @@ outpath = os.path.join(os.path.dirname(__main__.__file__), "out")
 if not os.path.exists(outpath):
     os.makedirs(outpath)
 outfile = os.path.join(outpath,
-        os.path.basename(os.path.splitext(__main__.__file__)[0] +
-            "_" + pl.normalized_simulator_name(sys.argv[1]) + ".txt"))
+        os.path.basename(os.path.splitext(__main__.__file__)[0] + "_"
+            + pynl.PyNNLess.normalized_simulator_name(sys.argv[1]) + ".txt"))
 
