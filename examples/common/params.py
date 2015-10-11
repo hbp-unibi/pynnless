@@ -22,13 +22,13 @@ system. You do not need to use these parameters for your own simulations.
 """
 
 IF_cond_exp = {
-	"cm" : 0.2,
-	"e_rev_E" : -40,
-	"e_rev_I" : -60,
-	"v_rest" : -50,
-	"v_reset" : -70,
-	"v_thresh": -47,
-	"tau_m": 409.0,
-	"tau_refrac": 20.0
+    "cm": 0.2,
+    "e_rev_E": -40,
+    "e_rev_I": -60,
+    "v_rest": -50,
+    "v_reset": -70,
+    "v_thresh": -47,
+    "tau_m": 409.0,
+    "tau_refrac": 20.0
 }
 
