@@ -431,6 +431,10 @@ class PyNNLess:
         # neuron membrane potential.
         try:
             self._redirect_io()
+            # Workaround for bug #378 in PyNN, see
+            # https://github.com/NeuralEnsemble/PyNN/issues/378
+            if ("spike_times" in params) and (len(params["spike_times"]) == 0):
+                del params["spike_times"]
             res = self.sim.Population(count, type_, params)
 
             if (self.version == 7):
