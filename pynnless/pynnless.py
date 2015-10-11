@@ -328,18 +328,21 @@ class PyNNLess:
         from pymarocco import PyMarocco, Placement
         from pyhalbe.Coordinate import HICANNGlobal, Enum
 
+        # Copy and delete non-standard setup parameters
+        neuron_size = setup["neuron_size"]
+        hicann_number = setup["hicann"]
+        del setup["neuron_size"]
+        del setup["hicann"]
+
         marocco = PyMarocco()
-        marocco.placement.setDefaultNeuronSize(setup["neuron_size"])
+        marocco.placement.setDefaultNeuronSize(neuron_size)
+        marocco.placement.use_output_buffer7_for_dnc_input_and_bg_hack = True
+        marocco.placement.minSPL1 = False
         marocco.backend = PyMarocco.Hardware
         marocco.calib_backend = PyMarocco.XML
         marocco.calib_path = "/wang/data/calibration/wafer_0"
-        marocco.bkg_gen_isi = 10000
 
-        hicann = HICANNGlobal(Enum(setup["hicann"]))
-
-        # Delete non-standard setup parameters
-        del setup["neuron_size"]
-        del setup["hicann"]
+        hicann = HICANNGlobal(Enum(hicann_number))
 
         # Pass the marocco object and the actual setup to the simulation setup
         # method
@@ -348,7 +351,8 @@ class PyNNLess:
         # Return the marocco object and a list containing all HICANN
         return {
             "marocco": marocco,
-            "hicann": hicann
+            "hicann": hicann,
+            "neuron_size": neuron_size
         }
 
     def _setup_simulator(self, setup, sim, simulator, version):
@@ -380,6 +384,7 @@ class PyNNLess:
             self._redirect_io()
             if (simulator == "nmpm1"):
                 self.backend_data = self._setup_nmpm1(sim, setup)
+                self.repeat_projections = self.backend_data["neuron_size"]
             else:
                 sim.setup(**setup)
         finally:
@@ -669,6 +674,9 @@ class PyNNLess:
     # 0.8 respectively)
     version = 0
 
+    # Number of times the connections must be repeated -- required for NMPM1
+    repeat_projections = 1
+
     def __init__(self, simulator, setup = {}):
         """
         Tries to load the PyNN simulator with the given name. Throws an
@@ -819,8 +827,10 @@ class PyNNLess:
 
             # Perform the actual connections
             for pids, descrs in connections.items():
-                self.sim.Projection(populations[pids[0]], populations[pids[1]],
-                    self.sim.FromListConnector(descrs))
+                for _ in xrange(self.repeat_projections):
+                    self.sim.Projection(
+                        populations[pids[0]], populations[pids[1]],
+                        self.sim.FromListConnector(descrs))
 
             # Run the simulation
             self.sim.run(time)
