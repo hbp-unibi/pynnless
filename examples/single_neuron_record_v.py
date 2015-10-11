@@ -41,7 +41,7 @@ res = sim.run(pynl.Network()
                 .record_spikes()
                 .record_v()
         )
-        .add_connection((0, 0), (1, 0), weight=0.004))
+        .add_connection((0, 0), (1, 0), weight=0.016))
 print("Done!")
 
 # Write the membrane potential for each neuron to disk (first column is time)

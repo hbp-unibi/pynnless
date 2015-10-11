@@ -40,7 +40,7 @@ print("Simulating network...")
 res = sim.run(pynl.Network()
         .add_source(spike_times=[0, 1000, 2000])
         .add_neuron(params=common.params.IF_cond_exp, record=pynl.SIG_SPIKES)
-        .add_connection((0, 0), (1, 0), weight=0.004))
+        .add_connection((0, 0), (1, 0), weight=0.016))
 print("Done!")
 
 # Print the output spikes (population 1, spikes, neuron 0)
