@@ -386,7 +386,7 @@ class PyNNLess:
             self._unredirect_io()
         return setup
 
-    def _build_population(self, population):
+    def _build_population(self, population, min_delay=0):
         """
         Used internally to creates a PyNN neuron population according to the
         parameters specified in the "population" object.
@@ -439,6 +439,16 @@ class PyNNLess:
             # https://github.com/NeuralEnsemble/PyNN/issues/378
             if ("spike_times" in params) and (len(params["spike_times"]) == 0):
                 del params["spike_times"]
+
+            # Make sure the spike times are larger or equal to one -- this
+            # otherwise causes a problem with the spikes simply discarded when
+            # using NEST
+            if ("spike_times" in params):
+                min_t = max(min_delay, 1.0)
+                for i, t in enumerate(params["spike_times"]):
+                    if t < min_t:
+                        params["spike_times"][i] = min_t
+
             res = self.sim.Population(count, type_, params)
         finally:
             self._unredirect_io(False)
@@ -781,11 +791,6 @@ class PyNNLess:
         # Automatically fetch the runtime of the network if none is given
         if time <= 0:
             time = self._auto_time(network)
-        # Generate the neuron populations
-        population_count = len(network["populations"])
-        populations = [None for _ in xrange(population_count)]
-        for i in xrange(population_count):
-            populations[i] = self._build_population(network["populations"][i])
 
         # Fetch the simulation timestep, work around bugs #123 and #147 in
         # sPyNNaker.
@@ -797,6 +802,14 @@ class PyNNLess:
             timestep = self.sim.get_time_step()
         elif ("timestep" in self.setup):
             timestep = self.setup["timestep"]
+
+
+        # Generate the neuron populations
+        population_count = len(network["populations"])
+        populations = [None for _ in xrange(population_count)]
+        for i in xrange(population_count):
+            populations[i] = self._build_population(
+                    network["populations"][i], timestep)
 
         # Build the connection matrices, and perform the actual connections
         connections = self._build_connections(network["connections"], timestep)
