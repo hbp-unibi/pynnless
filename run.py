@@ -40,9 +40,15 @@ for i, example in enumerate(files):
     if subprocess.call(cmd) != 0:
         ok[i] = False
         print("run.py: Experiment " + cmd[1] + " failed")
+
 print("run.py: Summary:")
 for i, example in enumerate(files):
     spaces = max(map(len, files)) - len(example)
     print("run.py: " + example + (" " * spaces) + " -> "
             + ("OK" if ok[i] else "FAIL"))
-print("run.py: Done.")
+
+if not reduce(lambda x, y: x and y, ok):
+    print("run.py: Done (with errors)")
+    sys.exit(1)
+
+print("run.py: Done")
