@@ -37,18 +37,14 @@ sim = pynl.PyNNLess(backend)
 print("Simulating network...")
 count = 10
 res = sim.run(pynl.Network()
-        .add_population(
-            pynl.SourcePopulation(
-                    count=count,
-                    spike_times=[100.0 * i for i in xrange(1, 9)])
-        )
+        .add_source(spike_times=[100.0 * i for i in xrange(1, 9)])
         .add_population(
             pynl.IfCondExpPopulation(
                     count=count,
                     params=common.params.IF_cond_exp)
                 .record_spikes()
         )
-        .add_connections([((0, i), (1, i), 0.06, 0.0) for i in xrange(count)]),
+        .add_connections([((0, 0), (1, i), 0.03, 0.0) for i in xrange(count)]),
         1000.0)
 print("Done!")
 
