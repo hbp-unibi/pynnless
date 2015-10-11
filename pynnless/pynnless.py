@@ -103,7 +103,7 @@ class PyNNLess:
             "timestep": 1.0
         },
         "nmpm1": {
-            "neuron_size": 2,
+            "neuron_size": 4,
             "hicann": 276
         }
     }
