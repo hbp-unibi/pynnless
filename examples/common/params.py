@@ -27,6 +27,8 @@ IF_cond_exp = {
 	"e_rev_I" : -100,
 	"v_rest" : -50,
 	"v_reset" : -70,
-	"v_thresh": -45,
+	"v_thresh": -47,
+	"tau_m": 409.0,
+	"tau_refrac": 20.0
 }
 

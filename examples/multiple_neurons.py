@@ -44,8 +44,7 @@ res = sim.run(pynl.Network()
                     params=common.params.IF_cond_exp)
                 .record_spikes()
         )
-        .add_connections([((0, 0), (1, i), 0.03, 0.0) for i in xrange(count)]),
-        1000.0)
+        .add_connections([((0, 0), (1, i), 0.004, 0.0) for i in xrange(count)]))
 print("Done!")
 
 # Write the spike times for each neuron to disk
