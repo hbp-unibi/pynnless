@@ -108,6 +108,10 @@ class PyNNLess:
         }
     }
 
+    # Time to wait after the last spike has been issued
+    AUTO_TIME_EXTENSION = 1000.0
+
+
     #
     # Private methods
     #
@@ -625,6 +629,16 @@ class PyNNLess:
             return pyNN.common.control.DEFAULT_TIMESTEP
         raise exceptions.PyNNLessException("DEFAULT_TIMESTEP not defined")
 
+    @classmethod
+    def _auto_time(cls, network):
+        time = 0
+        for p in network["populations"]:
+            if (("type" in p) and (p["type"] == const.TYPE_SOURCE) and
+                    ("params" in p) and ("spike_times" in p["params"]) and
+                    (len(p["params"]["spike_times"]) > 0)):
+                time = max(time, max(p["params"]["spike_times"]))
+        return time + cls.AUTO_TIME_EXTENSION
+
     #
     # Public interface
     #
@@ -743,7 +757,7 @@ class PyNNLess:
                     res[key] = min(res[key], const.PARAMETER_LIMITS[key]["max"])
         return res
 
-    def run(self, network, time = 1000):
+    def run(self, network, time = 0):
         """
         Builds and runs the network described in the "network" structure.
 
@@ -764,6 +778,9 @@ class PyNNLess:
             raise exceptions.PyNNLessException("\"connections\" key must be " +
                 "present in network description")
 
+        # Automatically fetch the runtime of the network if none is given
+        if time <= 0:
+            time = self._auto_time(network)
         # Generate the neuron populations
         population_count = len(network["populations"])
         populations = [None for _ in xrange(population_count)]
