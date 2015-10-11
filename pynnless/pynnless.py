@@ -497,7 +497,7 @@ class PyNNLess:
             setattr(res, "size", count)
 
         # For NMPM1: register the population in the marocco instance
-        if (self.simulator == "nmpm1"):
+        if self.simulator == "nmpm1" and not is_source:
             try:
                 self._redirect_io()
                 self.backend_data["marocco"].placement.add(res,
