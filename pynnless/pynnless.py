@@ -436,51 +436,55 @@ class PyNNLess:
             if ("spike_times" in params) and (len(params["spike_times"]) == 0):
                 del params["spike_times"]
             res = self.sim.Population(count, type_, params)
-
-            if (self.version == 7):
-                # Initialize membrane potential to v_rest, work around
-                # "need more PhD-students"-exception on NMPM1 (where this condition
-                # is fulfilled anyways)
-                if ((not is_source) and (self.simulator != "nmpm1")):
-                    res.initialize("v", params["v_rest"])
-
-                # Setup recording
-                if (const.SIG_SPIKES in record):
-                    if (is_source and self.simulator == "spiNNaker"):
-                        # Workaround for bug #122 in sPyNNaker
-                        # https://github.com/SpiNNakerManchester/sPyNNaker/issues/122
-                        logger.warning("spiNNaker backend does not support " +
-                                 "recording input spikes, returning 'spike_times'.")
-                        if ("spike_times" in params):
-                            setattr(res, "__fake_spikes", params["spike_times"])
-                        else:
-                            setattr(res, "__fake_spikes", [[] for _ in xrange(count)])
-                    else:
-                        res.record()
-                if (const.SIG_V in record):
-                    res.record_v()
-                if ((const.SIG_GE in record) or (const.SIG_GI in record)):
-                    res.record_gsyn()
-            elif (self.version == 8):
-                # Initialize membrane potential to v_rest, work around
-                # "need more PhD-students"-exception on NMPM1 (where this condition
-                # is fulfilled anyways)
-                if ((not is_source) and (self.simulator != "nmpm1")):
-                        res.initialize(v=params["v_rest"])
-
-                # Setup recording
-                res.record(record)
-
-            # Workaround bug in NMPM1, "size" attribute does not exist
-            if (not hasattr(res, "size")):
-                setattr(res, "size", count)
-
-            # For NMPM1: register the population in the marocco instance
-            if (self.simulator == "nmpm1"):
-                self.backend_data["marocco"].placement.add(res,
-                      self.backend_data["hicann"])
         finally:
             self._unredirect_io(False)
+
+        if (self.version == 7):
+            # Initialize membrane potential to v_rest, work around
+            # "need more PhD-students"-exception on NMPM1 (where this condition
+            # is fulfilled anyways)
+            if ((not is_source) and (self.simulator != "nmpm1")):
+                res.initialize("v", params["v_rest"])
+
+            # Setup recording
+            if (const.SIG_SPIKES in record):
+                if (is_source and self.simulator == "spiNNaker"):
+                    # Workaround for bug #122 in sPyNNaker
+                    # https://github.com/SpiNNakerManchester/sPyNNaker/issues/122
+                    logger.warning("spiNNaker backend does not support " +
+                             "recording input spikes, returning 'spike_times'.")
+                    if ("spike_times" in params):
+                        setattr(res, "__fake_spikes", params["spike_times"])
+                    else:
+                        setattr(res, "__fake_spikes", [[] for _ in xrange(count)])
+                else:
+                    res.record()
+            if (const.SIG_V in record):
+                res.record_v()
+            if ((const.SIG_GE in record) or (const.SIG_GI in record)):
+                res.record_gsyn()
+        elif (self.version == 8):
+            # Initialize membrane potential to v_rest, work around
+            # "need more PhD-students"-exception on NMPM1 (where this condition
+            # is fulfilled anyways)
+            if ((not is_source) and (self.simulator != "nmpm1")):
+                    res.initialize(v=params["v_rest"])
+
+            # Setup recording
+            res.record(record)
+
+        # Workaround bug in NMPM1, "size" attribute does not exist
+        if (not hasattr(res, "size")):
+            setattr(res, "size", count)
+
+        # For NMPM1: register the population in the marocco instance
+        if (self.simulator == "nmpm1"):
+            try:
+                self._redirect_io()
+                self.backend_data["marocco"].placement.add(res,
+                      self.backend_data["hicann"])
+            finally:
+                self._unredirect_io(False)
 
         return res
 
