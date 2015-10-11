@@ -33,10 +33,16 @@ examples = os.path.join(os.path.dirname(os.path.abspath(__file__)),
         "examples")
 files = [f for f in os.listdir(examples) if f[-3:] == ".py"]
 files.sort()
-for example in files:
+ok = [True for _ in xrange(len(files))]
+for i, example in enumerate(files):
     cmd = ["python", os.path.join(examples, example)] + sys.argv[1:]
     print("run.py: Executing " + cmd[1])
     if subprocess.call(cmd) != 0:
-        print("run.py: Previous command exited with error, aborting.")
-        sys.exit(1)
+        ok[i] = False
+        print("run.py: Experiment " + cmd[1] + " failed")
+print("run.py: Summary:")
+for i, example in enumerate(files):
+    spaces = max(map(len, files)) - len(example)
+    print("run.py: " + example + (" " * spaces) + " -> "
+            + ("OK" if ok[i] else "FAIL"))
 print("run.py: Done.")
