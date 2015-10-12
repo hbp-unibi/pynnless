@@ -325,8 +325,14 @@ class PyNNLess:
         instance and sets it up. Marocco setup parameters were taken from
         https://github.com/electronicvisions/hbp_platform_demo/blob/master/nmpm1/run.py
         """
+        import pylogging
         from pymarocco import PyMarocco, Placement
         from pyhalbe.Coordinate import HICANNGlobal, Enum
+
+        # Deactivate logging
+        for domain in ["Default", "marocco", "sthal.HICANNConfigurator.Time"]:
+            pylogging.set_loglevel(
+                pylogging.get(domain), pylogging.LogLevel.ERROR)
 
         # Copy and delete non-standard setup parameters
         neuron_size = setup["neuron_size"]
