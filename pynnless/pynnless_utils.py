@@ -16,6 +16,8 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import copy
+
 def is_function(f):
     """
     Returns True if f is callable, False otherwise.
@@ -29,10 +31,10 @@ def init_key(tar, src, key, default):
     value instead.
     """
     if key in src:
-        tar[key] = src[key]
+        tar[key] = copy.deepcopy(src[key])
     else:
         if is_function(default):
-            tar[key] = default()
+            tar[key] = copy.deepcopy(default())
         else:
-            tar[key] = default
+            tar[key] = copy.deepcopy(default)
 
