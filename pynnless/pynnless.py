@@ -525,20 +525,18 @@ class PyNNLess:
         return res
 
     @staticmethod
-    def _convert_pyNN7_spikes(spikes, n):
+    def _convert_pyNN7_spikes(spikes, n, idx_offs=0, t_scale=1.0):
         """
         Converts a pyNN7 spike train, list of (nid, time)-tuples, into a list
         of lists containing the spike times for each neuron individually.
         """
 
-        print ">> DEBUG"
-        print spikes, n
-        print "<< DEBUG"
-
         # Create one result list for each neuron
         res = [[] for _ in xrange(n)]
         for row in spikes:
-            res[int(row[0])].append(np.float32(row[1]))
+            nIdx = int(row[0]) - idx_offs
+            if nIdx >= 0 and nIdx < n:
+                res[nIdx].append(np.float32(row[1]) * t_scale)
 
         # Make sure the resulting lists are sorted by time
         for i in xrange(n):
@@ -591,8 +589,12 @@ class PyNNLess:
             spikes = getattr(population, "__fake_spikes")
             return [spikes for _ in xrange(population.size)]
         if (self.version == 7):
-            return self._convert_pyNN7_spikes(population.getSpikes(),
-                population.size)
+            if self.simulator == "nmpm1":
+                return self._convert_pyNN7_spikes(population.getSpikes(),
+                    population.size, idx_offs=1, t_scale=1000.0)
+            else:
+                return self._convert_pyNN7_spikes(population.getSpikes(),
+                    population.size)
         elif (self.version == 8):
             return self._convert_pyNN8_spikes(
                 population.get_data().segments[0].spiketrains)
