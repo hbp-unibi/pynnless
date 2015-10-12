@@ -531,6 +531,10 @@ class PyNNLess:
         of lists containing the spike times for each neuron individually.
         """
 
+        print ">> DEBUG"
+        print spikes, n
+        print "<< DEBUG"
+
         # Create one result list for each neuron
         res = [[] for _ in xrange(n)]
         for row in spikes:
