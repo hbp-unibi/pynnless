@@ -109,6 +109,7 @@ class PyNNLess:
         "ess": {
             "ess_params": {"perfectSynapseTrafo": True},
             "hardware": "$sim.hardwareSetup[\"one-hicann\"]",
+            "ignoreHWParameterRanges": False,
             "useSystemSim": True,
         },
         "nmmc1": {
@@ -388,6 +389,11 @@ class PyNNLess:
         # Assemble the setup
         setup = self._build_setup(setup, sim, simulator, version)
 
+        # Read PyNNLess specific flags
+        if "fix_parameters" in setup:
+            self.fix_parameters = bool(setup["fix_parameters"])
+            del setup["fix_parameters"]
+
         # PyNN 0.7 compatibility hack: Update min_delay/timestep if only one
         # of the values is set
         if ((not "min_delay" in setup) and ("timestep" in setup)):
@@ -425,6 +431,59 @@ class PyNNLess:
             return self.NEURON_TYPE_REMAP[self.simulator][type_name]
         return type_name
 
+    def _fix_parameters(self, params, params_orig, type_name):
+        """
+        Performs a few backend specific parameter adaptations.
+        """
+
+        # Abort if parameter adaptation has been deactivated
+        if not self.fix_parameters:
+            return params
+
+        # ESS specific adaptations
+        if ((self.simulator == "ess") and
+                (not self.setup["ignoreHWParameterRanges"])):
+            if type_name == const.IF_cond_exp:
+                if params["cm"] != 0.2:
+                    params["cm"] = 0.2
+                    self.parameter_warnings.add("cm set to 0.2")
+                if params["e_rev_E"] != 0.0:
+                    params["e_rev_E"] = 0.0
+                    self.parameter_warnings.add("e_rev_E set to 0.0 mV")
+                if params["e_rev_I"] != -100.0:
+                    params["e_rev_I"] = -100.0
+                    self.parameter_warnings.add("e_rev_I set to -100.0 mV")
+                if params["v_rest"] != -50.0:
+                    vOffs = (-50.0) - params["v_rest"]
+                    params["v_rest"] = params["v_rest"] + vOffs
+                    params["v_reset"] = params["v_reset"] + vOffs
+                    params["v_thresh"] = params["v_thresh"] + vOffs
+                    self.parameter_warnings.add("set v_rest to -50.0 mV, " +
+                        "offset v_thresh, v_reset")
+
+        # Spikey specific adaptations
+        if self.simulator == "spikey":
+            if type_name == "IF_facets_hardware1":
+                # Convert tau_m to g_leak
+                if (not ("g_leak" in params_orig)) and ("tau_m" in params_orig):
+                    # g_leak [nS] = 0.2 [nF] / tau_m [mV]
+                    params["g_leak"] = (0.2e-9 / (params["tau_m"] * 1e-3)) * 1e9
+
+                # Shift the voltages below -55.0 mV
+                vs = [params["v_rest"], params["v_reset"], params["v_thresh"],
+                        params["e_rev_I"]]
+                vmax = max(vs)
+                if vmax > -55.0:
+                    vOffs = (-55.0) - vmax
+                    params["e_rev_I"] = params["e_rev_I"] + vOffs
+                    params["v_rest"] = params["v_rest"] + vOffs
+                    params["v_reset"] = params["v_reset"] + vOffs
+                    params["v_thresh"] = params["v_thresh"] + vOffs
+                    self.parameter_warnings.add("Neuron potentials were "
+                        + "shifted to stay below -55mV")
+
+        return params
+
     def _build_population(self, population, min_delay=0):
         """
         Used internally to creates a PyNN neuron population according to the
@@ -455,6 +514,10 @@ class PyNNLess:
         params = self.merge_default_parameters(population["params"], type_name,
                 type_)
 
+        # For some hardware platforms we need to adapt the parameters a little
+        # for the system to run -- if any change is done, PyNNLess issues a
+        # warning notifying the user about these adaptations
+        params = self._fix_parameters(params, population["params"], type_name)
 
         # Issue warnings about ignored parameters
         for key, _ in population["params"].items():
@@ -725,6 +788,11 @@ class PyNNLess:
     # Set of generic warnings that should be issued before the simulation is
     # started
     warnings = set()
+
+    # Flag which indicates whether the parameters should be adapted or not. Can
+    # be deactivated by setting the corresponding "fix_parameters" setup flag.
+    fix_parameters = True
+
     def __init__(self, simulator, setup = {}):
         """
         Tries to load the PyNN simulator with the given name. Throws an
@@ -737,7 +805,9 @@ class PyNNLess:
         Additionally handles some of the (wrong) simulator names passed by the
         HBP Neuromorphic Compute Platform and adds support for NMPM1.
         :param setup: structure containing additional setup parameters to be
-        passed to the "setup" method.
+        passed to the "setup" method. Special PyNNLess specific setup parameters
+        include the "fix_parameters" flag which indicates whether backend
+        specific parameter adaptations should be performed.
         """
 
         self.version = self._check_version()
