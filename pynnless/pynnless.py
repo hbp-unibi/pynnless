@@ -534,29 +534,30 @@ class PyNNLess:
                 logger.warning("Unknown signal \"" + signal
                     + "\". May be ignored by the backend.")
 
+        # Workaround for bug #378 in PyNN, see
+        # https://github.com/NeuralEnsemble/PyNN/issues/378
+        if ("spike_times" in params) and (len(params["spike_times"]) == 0):
+            del params["spike_times"]
+
+        # Make sure the spike times are larger or equal to one -- this
+        # otherwise causes a problem with the spikes simply discarded when
+        # using NEST
+        if ("spike_times" in params):
+            min_t = max(min_delay, 1.0)
+            for i, t in enumerate(params["spike_times"]):
+                if t < min_t:
+                    params["spike_times"][i] = min_t
+
         # Create the output population, in case this is not a source population,
         # also force the neuron membrane potential to be initialized with the
         # neuron membrane potential.
         try:
             self._redirect_io()
-            # Workaround for bug #378 in PyNN, see
-            # https://github.com/NeuralEnsemble/PyNN/issues/378
-            if ("spike_times" in params) and (len(params["spike_times"]) == 0):
-                del params["spike_times"]
-
-            # Make sure the spike times are larger or equal to one -- this
-            # otherwise causes a problem with the spikes simply discarded when
-            # using NEST
-            if ("spike_times" in params):
-                min_t = max(min_delay, 1.0)
-                for i, t in enumerate(params["spike_times"]):
-                    if t < min_t:
-                        params["spike_times"][i] = min_t
-
             res = self.sim.Population(count, type_, params)
         finally:
             self._unredirect_io(False)
 
+        # Setup recording
         if (self.version <= 7):
             # Initialize membrane potential to v_rest on systems where the
             # initialize method is available (not NMPM1 and SPIKEY)
