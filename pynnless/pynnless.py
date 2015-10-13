@@ -718,6 +718,13 @@ class PyNNLess:
     # Number of times the connections must be repeated -- required for NMPM1
     repeat_projections = 1
 
+    # Set of changes performed on the neuron parameters -- changes are collected
+    # in a set and printed before a simulation is started
+    parameter_warnings = set()
+
+    # Set of generic warnings that should be issued before the simulation is
+    # started
+    warnings = set()
     def __init__(self, simulator, setup = {}):
         """
         Tries to load the PyNN simulator with the given name. Throws an
@@ -852,6 +859,10 @@ class PyNNLess:
             raise exceptions.PyNNLessException("\"connections\" key must be " +
                 "present in network description")
 
+        # Reset some state variables
+        self.parameter_warnings = set()
+        self.warnings = set()
+
         # Automatically fetch the runtime of the network if none is given
         if time <= 0:
             time = self._auto_time(network)
@@ -878,6 +889,16 @@ class PyNNLess:
 
         # Build the connection matrices, and perform the actual connections
         connections = self._build_connections(network["connections"], timestep)
+
+        # Inform the user about the parameter adaptations
+        for warning in self.warnings:
+            logger.warning(warning)
+        for warning in self.parameter_warnings:
+            logger.warning("Adapted neuron parameters: " + warning)
+        if len(self.parameter_warnings) != 0:
+            logger.warning("Parameter adaptations have been performed. Set " +
+                "the setup flag \"fix_parameters\" to False to suppress this " +
+                "behaviour.")
 
         try:
             self._redirect_io()
