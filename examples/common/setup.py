@@ -54,7 +54,8 @@ if len(sys.argv) != 2:
     print
     sys.exit(1)
 
-# Assemble the script output file name
+# Assemble the script output file name and data path
+datapath = os.path.join(os.path.dirname(__main__.__file__), "data")
 outpath = os.path.join(os.path.dirname(__main__.__file__), "out")
 if not os.path.exists(outpath):
     os.makedirs(outpath)
