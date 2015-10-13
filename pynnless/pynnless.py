@@ -559,6 +559,13 @@ class PyNNLess:
         finally:
             self._unredirect_io(False)
 
+        # Increment the neuron counter needed to work around a bug in spikey,
+        # store the neuron index in the created population
+        if not is_source:
+            if self.simulator == "spikey":
+                setattr(res, "__offs", self.neuron_count)
+            self.neuron_count += count
+
         # Setup recording
         if (self.version <= 7):
             # Initialize membrane potential to v_rest on systems where the
@@ -720,12 +727,16 @@ class PyNNLess:
             spikes = getattr(population, "__fake_spikes")
             return [spikes for _ in xrange(population.size)]
         if (self.version <= 7):
+            # Workaround for spikey, which seems to index the neurons globally
+            # instead of per-neuron
+            idx_offs = (getattr(population, "__offs")
+                    if hasattr(population, "__offs") else 0)
             if self.simulator == "nmpm1":
                 return self._convert_pyNN7_spikes(population.getSpikes(),
-                    population.size, idx_offs=1, t_scale=1000.0)
+                    population.size, idx_offs=idx_offs + 1, t_scale=1000.0)
             else:
                 return self._convert_pyNN7_spikes(population.getSpikes(),
-                    population.size)
+                    population.size, idx_offs=idx_offs)
         elif (self.version == 8):
             return self._convert_pyNN8_spikes(
                 population.get_data().segments[0].spiketrains)
@@ -835,6 +846,9 @@ class PyNNLess:
     # only support a limited number of voltage recordings. Only valid for
     # PyNN 0.7 or lower.
     record_v_count = 0
+
+    # Global count of non-source neurons within all populations
+    neuron_count = 0
 
     def __init__(self, simulator, setup = {}):
         """
@@ -976,6 +990,7 @@ class PyNNLess:
         self.parameter_warnings = set()
         self.warnings = set()
         self.record_v_count = 0
+        self.neuron_count = 0
 
         # Automatically fetch the runtime of the network if none is given
         if time <= 0:
