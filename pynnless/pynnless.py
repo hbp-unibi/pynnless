@@ -472,9 +472,9 @@ class PyNNLess:
                 # Shift the voltages below -55.0 mV
                 vs = [params["v_rest"], params["v_reset"], params["v_thresh"],
                         params["e_rev_I"]]
-                vmax = max(vs)
-                if vmax > -55.0:
-                    vOffs = (-55.0) - vmax
+                vMax = max(vs)
+                if vMax > -55.0:
+                    vOffs = (-55.0) - vMax
                     params["e_rev_I"] = params["e_rev_I"] + vOffs
                     params["v_rest"] = params["v_rest"] + vOffs
                     params["v_reset"] = params["v_reset"] + vOffs
