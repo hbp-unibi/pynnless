@@ -578,7 +578,22 @@ class PyNNLess:
                 else:
                     res.record()
             if (const.SIG_V in record):
-                res.record_v()
+                # Special handling for voltage recording with Spikey
+                if (self.simulator == "spikey"):
+                    if (self.record_v_count > 0 or count > 1):
+                        self.warnings.add("Spikey can only record from a " +
+                            "single neuron. Only recording membrane " +
+                            "potential for the first neuron in the first " +
+                            "for which the membrane potential should be " +
+                            "recorded")
+                    if self.record_v_count == 0:
+                        setattr(res, "__spikey_record_v", True)
+                        self.sim.record_v(res[0], '')
+                else:
+                    res.record_v()
+
+                # Increment the record_v_count variable
+                self.record_v_count += count
             if ((const.SIG_GE in record) or (const.SIG_GI in record)):
                 res.record_gsyn()
         elif (self.version == 8):
@@ -676,6 +691,17 @@ class PyNNLess:
 
         return {"data": ds, "time": ts}
 
+    def _fetch_spikey_voltage(self, population):
+        """
+        Hack which returns the voltages recorded by spikey.
+        """
+        vs = self.sim.membraneOutput
+        ts = self.sim.timeMembraneOutput
+
+        res = np.zeros((population.size, len(ts)))
+        res[0] = vs
+        return {"data": res, "time": ts}
+
     def _fetch_spikes(self, population):
         """
         Fetches the recorded spikes from a neuron population and performs all
@@ -716,8 +742,13 @@ class PyNNLess:
                     "time": np.zeros((0), dtype=np.float32)}
         if (self.version <= 7):
             if (signal == const.SIG_V):
-                return self._convert_pyNN7_signal(population.get_v(), 2,
-                    population.size)
+                # Special handling for the spikey simulator
+                if (self.simulator == "spikey"):
+                    if (hasattr(population, "__spikey_record_v")):
+                        return self._fetch_spikey_voltage(population)
+                else:
+                    return self._convert_pyNN7_signal(population.get_v(), 2,
+                        population.size)
             elif (signal == const.SIG_GE):
                 return self._convert_pyNN7_signal(population.get_gsyn(), 2,
                     population.size)
@@ -793,6 +824,11 @@ class PyNNLess:
     # Flag which indicates whether the parameters should be adapted or not. Can
     # be deactivated by setting the corresponding "fix_parameters" setup flag.
     fix_parameters = True
+
+    # Number of times the output potential has been recorded -- some platforms
+    # only support a limited number of voltage recordings. Only valid for
+    # PyNN 0.7 or lower.
+    record_v_count = 0
 
     def __init__(self, simulator, setup = {}):
         """
@@ -933,6 +969,7 @@ class PyNNLess:
         # Reset some state variables
         self.parameter_warnings = set()
         self.warnings = set()
+        self.record_v_count = 0
 
         # Automatically fetch the runtime of the network if none is given
         if time <= 0:
