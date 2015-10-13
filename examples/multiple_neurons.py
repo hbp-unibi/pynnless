@@ -30,7 +30,7 @@ import pynnless as pynl
 
 # Create a new pl instance with the given backend
 backend = sys.argv[1]
-sim = pynl.PyNNLess(backend, setup={"neuron_size": 16})
+sim = pynl.PyNNLess(backend)
 
 # Create and run network with two populations: One population consisting of a
 # spike source arrays and another population consisting of neurons.
