@@ -25,7 +25,6 @@ allow the description of a network independent of the actual PyNN version.
 # PyNN libraries
 import pyNN
 import pyNN.common
-import pyNN.standardmodels.cells
 import numpy as np
 
 # Simulator loading and lookup
@@ -54,7 +53,7 @@ oldstderr = None
 class PyNNLess:
     """
     The backend class is used as an abstraction to the actual PyNN backend,
-    which may either be present in version 0.7 or 0.8. Furthermore, it
+    which may either be present in version 0.6, 0.7 or 0.8. Furthermore, it
     constructs the network from a simple graph abstraction.
     """
 
@@ -63,7 +62,7 @@ class PyNNLess:
     # were tested and will be returned by the "backends" method. The simulator
     # names are the normalized simulator names.
     SUPPORTED_SIMULATORS = {
-        "nest", "ess", "nmpm1", "nmmc1"
+        "nest", "ess", "nmpm1", "nmmc1", "spikey"
     }
 
     # Used to map certain simulator names to a more canonical form. This
@@ -73,6 +72,7 @@ class PyNNLess:
         "hardware.brainscales": "ess",
         "spiNNaker": "nmmc1",
         "pyhmf": "nmpm1",
+        "hardware.spikey": "spikey",
     }
 
     # Maps certain simulator names to the correct PyNN module names. If multiple
@@ -81,11 +81,23 @@ class PyNNLess:
         "ess": ["pyNN.hardware.brainscales"],
         "nmmc1": ["pyNN.spiNNaker"],
         "nmpm1": ["pyhmf"],
+        "spikey": ["pyNN.hardware.spikey"],
     }
 
     # List of simulators that need a call to "end" before the results are
     # retrieved
     PREMATURE_END_SIMULATORS = ["nmpm1"]
+
+    # List of simulators which are hardware systems without an explicit timestep
+    ANALOGUE_SYSTEMS = ["ess", "nmpm1", "spikey"]
+
+    # Map used for remapping neuron types to internal types based on the current
+    # simulator
+    NEURON_TYPE_REMAP = {
+        "spikey": {
+            const.TYPE_IF_COND_EXP: "IF_facets_hardware1"
+        }
+    }
 
     # Map containing certain default setup parameters for the various
     # (normalized) backends. Setup parameters starting with $ are evaluated as
@@ -105,7 +117,10 @@ class PyNNLess:
         "nmpm1": {
             "neuron_size": 4,
             "hicann": 276
-        }
+        },
+        "spikey": {
+            # No default setup parameters needed
+        },
     }
 
     # Time to wait after the last spike has been issued
@@ -192,7 +207,7 @@ class PyNNLess:
             oldstdout = None
 
     @staticmethod
-    def _check_version(version):
+    def _check_version(version = pyNN.__version__):
         """
         Internally used to check the current PyNN version. Sets the "version"
         variable to the correct API version and raises an exception if the PyNN
@@ -201,12 +216,14 @@ class PyNNLess:
         :param version: the PyNN version string to be checked, should be the
         value of pyNN.__version__
         """
-        if (version[0:3] == '0.7'):
+        if (version[0:3] == '0.6'):
+            return 6
+        elif (version[0:3] == '0.7'):
             return 7
         elif (version[0:3] == '0.8'):
             return 8
         raise exceptions.PyNNLessVersionException("Unsupported PyNN version '"
-            + pyNN.__version__ + "', supported are pyNN 0.7 and 0.8")
+            + version + "', supported are pyNN 0.7 and 0.8")
 
     @classmethod
     def _lookup_simulator(cls, simulator):
@@ -397,6 +414,17 @@ class PyNNLess:
             self._unredirect_io()
         return setup
 
+    def _remap_neuron_type(self, type_name):
+        """
+        Some neuron types are available under a different name on certain
+        simulator backends. This method remaps the given type_name to those
+        types.
+        """
+        if ((self.simulator in self.NEURON_TYPE_REMAP) and
+                (type_name in self.NEURON_TYPE_REMAP[self.simulator])):
+            return self.NEURON_TYPE_REMAP[self.simulator][type_name]
+        return type_name
+
     def _build_population(self, population, min_delay=0):
         """
         Used internally to creates a PyNN neuron population according to the
@@ -415,7 +443,7 @@ class PyNNLess:
         count = population["count"]
 
         # Translate the neuron types to the PyNN neuron type
-        type_name = population["type"]
+        type_name = self._remap_neuron_type(population["type"])
         if (not hasattr(self.sim, type_name)):
             raise exceptions.PyNNLessException("Neuron type '" + type_name
                     + "' not supported by backend.")
@@ -464,11 +492,10 @@ class PyNNLess:
         finally:
             self._unredirect_io(False)
 
-        if (self.version == 7):
-            # Initialize membrane potential to v_rest, work around
-            # "need more PhD-students"-exception on NMPM1 (where this condition
-            # is fulfilled anyways)
-            if ((not is_source) and (self.simulator != "nmpm1")):
+        if (self.version <= 7):
+            # Initialize membrane potential to v_rest on systems where the
+            # initialize method is available (not NMPM1 and SPIKEY)
+            if ((not is_source) and hasattr(res, "initialize")):
                 res.initialize("v", params["v_rest"])
 
             # Setup recording
@@ -594,7 +621,7 @@ class PyNNLess:
         if (hasattr(population, "__fake_spikes")):
             spikes = getattr(population, "__fake_spikes")
             return [spikes for _ in xrange(population.size)]
-        if (self.version == 7):
+        if (self.version <= 7):
             if self.simulator == "nmpm1":
                 return self._convert_pyNN7_spikes(population.getSpikes(),
                     population.size, idx_offs=1, t_scale=1000.0)
@@ -621,7 +648,7 @@ class PyNNLess:
                     "signals for now")
             return {"data": np.zeros((population.size, 0), dtype=np.float32),
                     "time": np.zeros((0), dtype=np.float32)}
-        if (self.version == 7):
+        if (self.version <= 7):
             if (signal == const.SIG_V):
                 return self._convert_pyNN7_signal(population.get_v(), 2,
                     population.size)
@@ -654,7 +681,7 @@ class PyNNLess:
         elif (hasattr(pyNN.common, "control")
                 and hasattr(pyNN.common.control, "DEFAULT_TIMESTEP")):
             return pyNN.common.control.DEFAULT_TIMESTEP
-        raise exceptions.PyNNLessException("DEFAULT_TIMESTEP not defined")
+        return 0.1 # Above values are not defined in PyNN 0.6
 
     @classmethod
     def _auto_time(cls, network):
@@ -704,7 +731,7 @@ class PyNNLess:
         passed to the "setup" method.
         """
 
-        self.version = self._check_version(pyNN.__version__)
+        self.version = self._check_version()
         self.sim, self.simulator = self._load_simulator(simulator)
         self.setup = self._setup_simulator(setup, self.sim, self.simulator,
                 self.version)
@@ -737,17 +764,25 @@ class PyNNLess:
         """
         return cls._lookup_simulator(simulator)[0]
 
-    @staticmethod
-    def default_parameters(type_name):
+    @classmethod
+    def default_parameters(cls, type_name):
         """
         Returns the default parameters for a certain neuron type.
 
         :param type_name: is the neuron type name
         """
 
+        # In case we're dealing with PyNN 0.6, use the "cells" module,
+        # otherwise the "standardmodels.cells"
+        if cls._check_version() == 6:
+            import pyNN.cells
+            module = pyNN.cells
+        else:
+            import pyNN.standardmodels.cells
+            module = pyNN.standardmodels.cells
+
         # The "dict" makes sure a copy is returned
-        return dict(getattr(pyNN.standardmodels.cells, type_name)
-                .default_parameters)
+        return dict(getattr(module, type_name).default_parameters)
 
     @classmethod
     def merge_default_parameters(cls, params, type_name):
@@ -817,8 +852,9 @@ class PyNNLess:
         # Do not call get_time_step() on the analogue hardware systems as this
         # will result in an exception.
         timestep = self._get_default_timestep()
-        if (hasattr(self.sim, "get_time_step") and not (self.simulator == "ess"
-                or self.simulator == "nmpm1" or self.simulator == "nmmc1")):
+        if (hasattr(self.sim, "get_time_step") and not (
+                (self.simulator in self.ANALOGUE_SYSTEMS) or
+                (self.simulator == "nmmc1"))):
             timestep = self.sim.get_time_step()
         elif ("timestep" in self.setup):
             timestep = self.setup["timestep"]

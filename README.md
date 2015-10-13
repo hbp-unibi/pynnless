@@ -13,15 +13,16 @@ should work with all backends used in the
 Backends include the software simulator [NEST](http://www.nest-simulator.org/)
 (versions 2.2 and 2.4), the
 [SpiNNaker multicore system](https://github.com/SpiNNakerManchester/)
-(NMMC1) developed at Manchester University and the
+(NMMC1) developed at Manchester University, the
 [HICANN physical modell](https://github.com/electronicvisions/)
-(NMPM1) developed at Heidelberg University and its emulation, the ESS.
+(NMPM1) developed at Heidelberg University, its emulation, the ESS and the
+[Spikey chip](http://www.kip.uni-heidelberg.de/spikey) also developed at heidelberg.
 
 ### Why yet another PyNN abstraction layer?
 
-_PyNNLess_ provides a common API for both _PyNN_ 0.7 and 0.8 and works around the
-bugs in the hardware backend bindings. Eventually, at some point in the future
-these bugs will be fixed and _PyNNLess_ will be obsolete.
+_PyNNLess_ provides a common API for _PyNN_ versions 0.6, 0.7 and 0.8 and works
+around the bugs in the hardware backend bindings. Eventually, at some point in the
+future these bugs will be fixed and _PyNNLess_ will be obsolete.
 
 Both network descriptions and recorded results are provided in a JSON-like
 object format, making it very easy to use _PyNNLess_ but rendering it impractical
