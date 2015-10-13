@@ -467,7 +467,9 @@ class PyNNLess:
                 # Convert tau_m to g_leak
                 if (not ("g_leak" in params_orig)) and ("tau_m" in params_orig):
                     # g_leak [nS] = 0.2 [nF] / tau_m [mV]
-                    params["g_leak"] = (0.2e-9 / (params["tau_m"] * 1e-3)) * 1e9
+                    params["g_leak"] = (0.2e-9 /
+                            (params_orig["tau_m"] * 1e-3)) * 1e9
+                    self.parameter_warnings.add("Converted tau_m to g_leak")
 
                 # Shift the voltages below -55.0 mV
                 vs = [params["v_rest"], params["v_reset"], params["v_thresh"],
