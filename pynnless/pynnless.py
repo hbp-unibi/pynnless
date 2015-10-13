@@ -452,7 +452,9 @@ class PyNNLess:
 
         # Fetch the default parameters for this neuron type and merge them with
         # parameters given for this population.
-        params = self.merge_default_parameters(population["params"], type_name)
+        params = self.merge_default_parameters(population["params"], type_name,
+                type_)
+
 
         # Issue warnings about ignored parameters
         for key, _ in population["params"].items():
@@ -785,7 +787,7 @@ class PyNNLess:
         return dict(getattr(module, type_name).default_parameters)
 
     @classmethod
-    def merge_default_parameters(cls, params, type_name):
+    def merge_default_parameters(cls, params, type_name, type_=None):
         """
         Merges the given parameter object with the default parameters for the
         given neuron type. Removes any keys from params that are not listed in
@@ -794,8 +796,15 @@ class PyNNLess:
         :params params: parameters to be merged with the default parameters.
         :params type_name: name of the neuron type for which the default
         parameters should be retrieved.
+        :param type_: neuron type class -- if it exposes a "default_parameters"
+        attribute this value is used for default parameters
         """
-        res = cls.default_parameters(type_name)
+        # Try to fetch the default parameters
+        if (type_ != None and hasattr(type_, "default_parameters")):
+            res = type_.default_parameters
+        else:
+            res = cls.default_parameters(type_name)
+        # Only copy existing parameter keys from the user-supplied parameters
         for key, _ in res.items():
             if (key in params):
                 # Convert integer parameters to floating point values, fixes bug
