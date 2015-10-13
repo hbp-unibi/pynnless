@@ -561,8 +561,12 @@ class PyNNLess:
         if (self.version <= 7):
             # Initialize membrane potential to v_rest on systems where the
             # initialize method is available (not NMPM1 and SPIKEY)
-            if ((not is_source) and hasattr(res, "initialize")):
-                res.initialize("v", params["v_rest"])
+            try:
+                if ((not is_source) and hasattr(res, "initialize")):
+                    res.initialize("v", params["v_rest"])
+            except:
+                # NMPM1 raises an exception here
+                pass
 
             # Setup recording
             if (const.SIG_SPIKES in record):
