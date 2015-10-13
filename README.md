@@ -16,7 +16,7 @@ Backends include the software simulator [NEST](http://www.nest-simulator.org/)
 (NMMC1) developed at Manchester University, the
 [HICANN physical modell](https://github.com/electronicvisions/)
 (NMPM1) developed at Heidelberg University, its emulation, the ESS and the
-[Spikey chip](http://www.kip.uni-heidelberg.de/spikey) also developed at heidelberg.
+[Spikey chip](http://www.kip.uni-heidelberg.de/spikey) also developed at Heidelberg.
 
 ### Why yet another PyNN abstraction layer?
 
