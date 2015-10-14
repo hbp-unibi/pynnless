@@ -969,6 +969,20 @@ class PyNNLess:
                     res[key] = min(res[key], const.PARAMETER_LIMITS[key]["max"])
         return res
 
+    def get_time_step(self):
+        # Fetch the simulation timestep, work around bugs #123 and #147 in
+        # sPyNNaker.
+        # Do not call get_time_step() on the analogue hardware systems as this
+        # will result in an exception.
+        timestep = self._get_default_timestep()
+        if (hasattr(self.sim, "get_time_step") and not (
+                (self.simulator in self.ANALOGUE_SYSTEMS) or
+                (self.simulator == "nmmc1"))):
+            timestep = self.sim.get_time_step()
+        elif ("timestep" in self.setup):
+            timestep = self.setup["timestep"]
+        return timestep
+
     def run(self, network, time = 0):
         """
         Builds and runs the network described in the "network" structure.
@@ -1000,18 +1014,8 @@ class PyNNLess:
         if time <= 0:
             time = self._auto_time(network)
 
-        # Fetch the simulation timestep, work around bugs #123 and #147 in
-        # sPyNNaker.
-        # Do not call get_time_step() on the analogue hardware systems as this
-        # will result in an exception.
-        timestep = self._get_default_timestep()
-        if (hasattr(self.sim, "get_time_step") and not (
-                (self.simulator in self.ANALOGUE_SYSTEMS) or
-                (self.simulator == "nmmc1"))):
-            timestep = self.sim.get_time_step()
-        elif ("timestep" in self.setup):
-            timestep = self.setup["timestep"]
-
+        # Fetch the timestep
+        timestep = self.get_time_step()
 
         # Generate the neuron populations
         population_count = len(network["populations"])
