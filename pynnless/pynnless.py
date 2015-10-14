@@ -664,6 +664,10 @@ class PyNNLess:
             nIdx = int(row[0]) - idx_offs
             if nIdx >= 0 and nIdx < n:
                 res[nIdx].append(np.float32(row[1]) * t_scale)
+            elif row[0] >= 0 and row[0] < n:
+                # In case the Spikey indexing bug gets fixed, this code should
+                # execute instead of the above.
+                res[int(row[0])].append(np.float32(row[1]) * t_scale)
 
         # Make sure the resulting lists are sorted by time
         for i in xrange(n):
