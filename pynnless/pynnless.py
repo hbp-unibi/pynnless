@@ -939,7 +939,7 @@ class PyNNLess:
         """
         # Try to fetch the default parameters
         if (type_ != None and hasattr(type_, "default_parameters")):
-            res = type_.default_parameters
+            res = dict(type_.default_parameters)
         else:
             res = cls.default_parameters(type_name)
         # Only copy existing parameter keys from the user-supplied parameters
