@@ -91,6 +91,9 @@ class PyNNLess:
     # List of simulators which are hardware systems without an explicit timestep
     ANALOGUE_SYSTEMS = ["ess", "nmpm1", "spikey"]
 
+    # List of hardware systems
+    HARDWARE_SYSTEMS = ["nmpm1", "nmmc1", "spikey"]
+
     # Map used for remapping neuron types to internal types based on the current
     # simulator
     NEURON_TYPE_REMAP = {
@@ -982,6 +985,32 @@ class PyNNLess:
         elif ("timestep" in self.setup):
             timestep = self.setup["timestep"]
         return timestep
+
+    def get_simulator_info(self):
+        """
+        Returns information about the currently selected simulator -- the
+        maximum number of neurons and how many simulations can run in parallel
+        on a single machine.
+        """
+        res = {}
+        if not self.simulator in self.HARDWARE_SYSTEMS:
+            import multiprocessing
+            res["max_neuron_count"] = 1 << 31
+            res["parallel"] = multiprocessing.cpu_count()
+        else:
+            res["parallel"] = 1
+
+        # Set hardware-specific limitations
+        if self.simulator == "ess":
+            res["max_neuron_count"] = 224
+        elif self.simulator == "nmpm1":
+            res["max_neuron_count"] = 224 // self.backend_data["neuron_size"]
+        elif self.simulator == "nmmc1":
+            res["max_neuron_count"] = 48 * 256 # TODO: Actual board size
+        elif self.simulator == "spikey":
+            res["max_neuron_count"] = 384
+
+        return res
 
     def run(self, network, time = 0):
         """
