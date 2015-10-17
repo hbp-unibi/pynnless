@@ -34,6 +34,9 @@ import pkgutil
 # Logging
 import logging
 
+# Time measurements
+import time
+
 # For IO-redirection
 import os
 import sys
@@ -866,6 +869,18 @@ class PyNNLess:
     # Global count of non-source neurons within all populations
     neuron_count = 0
 
+    # Total time for the "run" method in ms
+    time_total = 0.0
+
+    # Simulation time (the time sim.run ran)
+    time_sim = 0.0
+
+    # Finalization time (time after sim.run)
+    time_finalize = 0.0
+
+    # Initialization time (time before sim.run)
+    time_initialize = 0.0
+
     def __init__(self, simulator, setup = {}):
         """
         Tries to load the PyNN simulator with the given name. Throws an
@@ -1021,7 +1036,17 @@ class PyNNLess:
 
         return res
 
-    def run(self, network, time = 0):
+    def get_time_info(self):
+        """
+        Returns timing information about the last run. All times are in seconds.
+        """
+        return {
+            "total": self.time_total,
+            "sim": self.time_sim,
+            "initialize": self.time_initialize,
+            "finalize": self.time_finalize
+        }
+
     def run(self, network, duration = 0):
         """
         Builds and runs the network described in the "network" structure.
@@ -1036,6 +1061,9 @@ class PyNNLess:
         :return: the recorded signals for each population, signal type and
         neuron
         """
+
+        # First time measurement point
+        t1 = time.clock()
 
         # Make sure both the "populations" and "connections" arrays have been
         # supplied
@@ -1089,8 +1117,10 @@ class PyNNLess:
                         populations[pids[0]], populations[pids[1]],
                         self.sim.FromListConnector(descrs))
 
-            # Run the simulation
+            # Run the simulation, measure time
+            t2 = time.clock()
             self.sim.run(duration)
+            t3 = time.clock()
 
             # End the simulation to fetch the results on nmpm1
             if (self.simulator in self.PREMATURE_END_SIMULATORS):
@@ -1114,6 +1144,14 @@ class PyNNLess:
                 self.sim.end()
         finally:
             self._unredirect_io()
+
+        # Store the time measurements, can be retrieved using the
+        # "get_time_info" method
+        t4 = time.clock()
+        self.time_total = t4 - t1
+        self.time_sim = t3 - t2
+        self.time_initialize = t2 - t1
+        self.time_finalize = t4 - t3
 
         return res
 
