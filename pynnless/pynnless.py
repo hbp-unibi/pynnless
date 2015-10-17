@@ -539,7 +539,7 @@ class PyNNLess:
         # Issue warnings about ignored parameters
         for key, _ in population["params"].items():
             if (not key in params):
-                logger.warning("Given parameter '" + key + "' does not " +
+                self.warnings.add("Given parameter '" + key + "' does not " +
                     "exist for neuron type '" + type_name + "'. Value " +
                     "will be ignored!")
 
@@ -548,7 +548,7 @@ class PyNNLess:
         record = population["record"]
         for signal in record:
             if (not signal in const.SIGNALS):
-                logger.warning("Unknown signal \"" + signal
+                self.warnings.add("Unknown signal \"" + signal
                     + "\". May be ignored by the backend.")
 
         # Workaround for bug #378 in PyNN, see
