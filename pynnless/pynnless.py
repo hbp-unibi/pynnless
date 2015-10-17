@@ -564,6 +564,7 @@ class PyNNLess:
             for i, t in enumerate(params["spike_times"]):
                 if t < min_t:
                     params["spike_times"][i] = min_t
+            params["spike_times"].sort()
 
         # Create the output population, in case this is not a source population,
         # also force the neuron membrane potential to be initialized with the
