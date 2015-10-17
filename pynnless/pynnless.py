@@ -132,8 +132,7 @@ class PyNNLess:
     }
 
     # Time to wait after the last spike has been issued
-    AUTO_TIME_EXTENSION = 1000.0
-
+    AUTO_DURATION_EXTENSION = 1000.0
 
     #
     # Private methods
@@ -815,14 +814,14 @@ class PyNNLess:
         return 0.1 # Above values are not defined in PyNN 0.6
 
     @classmethod
-    def _auto_time(cls, network):
-        time = 0
+    def _auto_duration(cls, network):
+        duration = 0
         for p in network["populations"]:
             if (("type" in p) and (p["type"] == const.TYPE_SOURCE) and
                     ("params" in p) and ("spike_times" in p["params"]) and
                     (len(p["params"]["spike_times"]) > 0)):
-                time = max(time, max(p["params"]["spike_times"]))
-        return time + cls.AUTO_TIME_EXTENSION
+                duration = max(duration, max(p["params"]["spike_times"]))
+        return duration + cls.AUTO_DURATION_EXTENSION
 
     #
     # Public interface
@@ -1023,6 +1022,7 @@ class PyNNLess:
         return res
 
     def run(self, network, time = 0):
+    def run(self, network, duration = 0):
         """
         Builds and runs the network described in the "network" structure.
 
@@ -1030,6 +1030,9 @@ class PyNNLess:
         "connections", where the first introduces the individual neuron
         populations and their parameters and the latter is an adjacency list
         containing the connection weights and delays between neurons.
+        :param duration: Simulation duration. If smaller than or equal to zero,
+        the simulation duration is automatically determined depending on the
+        last input spike time.
         :return: the recorded signals for each population, signal type and
         neuron
         """
@@ -1050,8 +1053,8 @@ class PyNNLess:
         self.neuron_count = 0
 
         # Automatically fetch the runtime of the network if none is given
-        if time <= 0:
-            time = self._auto_time(network)
+        if duration <= 0:
+            duration = self._auto_duration(network)
 
         # Fetch the timestep
         timestep = self.get_time_step()
@@ -1087,7 +1090,7 @@ class PyNNLess:
                         self.sim.FromListConnector(descrs))
 
             # Run the simulation
-            self.sim.run(time)
+            self.sim.run(duration)
 
             # End the simulation to fetch the results on nmpm1
             if (self.simulator in self.PREMATURE_END_SIMULATORS):
