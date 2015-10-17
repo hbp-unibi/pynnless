@@ -459,7 +459,7 @@ class PyNNLess:
         # ESS specific adaptations
         if ((self.simulator == "ess") and
                 (not self.setup["ignoreHWParameterRanges"])):
-            if type_name == const.IF_cond_exp:
+            if type_name == const.TYPE_IF_COND_EXP:
                 if params["cm"] != 0.2:
                     params["cm"] = 0.2
                     self.parameter_warnings.add("cm set to 0.2")
