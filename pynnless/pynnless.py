@@ -50,6 +50,10 @@ logger = logging.getLogger("PyNNLess")
 oldstdout = None
 oldstderr = None
 
+# Currently used file names for logging
+stdout_fn = None
+stderr_fn = None
+
 class PyNNLess:
     """
     The backend class is used as an abstraction to the actual PyNN backend,
@@ -180,35 +184,41 @@ class PyNNLess:
         """
         Redirects both stderr and stdout to some temporary files.
         """
-        global oldstdout, oldstderr
+        global oldstdout, oldstderr, stdout_fn, stderr_fn
+
+        r = str(np.random.randint(1 << 16))
         if (oldstdout == None):
-            oldstdout = cls._redirect_fd_to_file(1, "stdout.tmp")
+            stdout_fn = "stdout." + r + ".tmp"
+            oldstdout = cls._redirect_fd_to_file(1, stdout_fn)
         if (oldstderr == None):
-            oldstderr = cls._redirect_fd_to_file(2, "stderr.tmp")
+            stderr_fn = "stderr." + r + ".tmp"
+            oldstderr = cls._redirect_fd_to_file(2, stderr_fn)
 
     @classmethod
     def _unredirect_io(cls, tail=True):
         """
-        Undos the redirection performed by _redirect_io and prints the last
+        Reverts the redirection performed by _redirect_io and prints the last
         few lines of both files (if the "tail" parameter is set ot true).
         """
-        global oldstdout, oldstderr
+        global oldstdout, oldstderr, stdout_fn, stderr_fn
 
-        if (oldstderr != None):
+        if oldstderr != None and stderr_fn != None:
             sys.stderr.flush()
             cls._redirect_fd_to_fd(oldstderr, 2)
             if (tail):
-                cls._tail("stderr.tmp", "stderr")
-            os.remove("stderr.tmp")
+                cls._tail(stderr_fn, "stderr")
+            os.remove(stderr_fn)
             oldstderr = None
+            stderr_fn = None
 
-        if (oldstdout != None):
+        if oldstdout != None and stdout_fn != None:
             sys.stdout.flush()
             cls._redirect_fd_to_fd(oldstdout, 1)
             if (tail):
-                cls._tail("stdout.tmp", "stdout")
-            os.remove("stdout.tmp")
+                cls._tail(stdout_fn, "stdout")
+            os.remove(stdout_fn)
             oldstdout = None
+            stdout_fn = None
 
     @staticmethod
     def _check_version(version = pyNN.__version__):
