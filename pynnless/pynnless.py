@@ -1012,14 +1012,18 @@ class PyNNLess:
             timestep = self.setup["timestep"]
         return timestep
 
-    def get_simulator_info(self):
+    @classmethod
+    def get_simulator_info_static(cls, simulator, inst=None):
         """
-        Returns information about the currently selected simulator -- the
-        maximum number of neurons and how many simulations can run in parallel
-        on a single machine.
+        Returns information about the specified simulator without actually
+        setting it up.
         """
+        # Make sure the given simulator is in its canonical form
+        simulator, _ = PyNNLess._lookup_simulator(simulator)
+
+        # Lookup the concurrency
         res = {}
-        if not self.simulator in self.HARDWARE_SYSTEMS:
+        if not simulator in cls.HARDWARE_SYSTEMS:
             import multiprocessing
             res["max_neuron_count"] = 1 << 30
             res["concurrency"] = multiprocessing.cpu_count()
@@ -1027,16 +1031,25 @@ class PyNNLess:
             res["concurrency"] = 1
 
         # Set hardware-specific limitations
-        if self.simulator == "ess":
+        if simulator == "ess":
             res["max_neuron_count"] = 224
-        elif self.simulator == "nmpm1":
-            res["max_neuron_count"] = 224 // self.backend_data["neuron_size"]
-        elif self.simulator == "nmmc1":
+        elif simulator == "nmpm1":
+            size = 4 if inst == None else inst.backend_data["neuron_size"]
+            res["max_neuron_count"] = 224 // size
+        elif simulator == "nmmc1":
             res["max_neuron_count"] = 48 * 256 # TODO: Actual board size
-        elif self.simulator == "spikey":
+        elif simulator == "spikey":
             res["max_neuron_count"] = 384
 
         return res
+
+    def get_simulator_info(self):
+        """
+        Returns information about the currently selected simulator -- the
+        maximum number of neurons and how many simulations can run in parallel
+        on a single machine.
+        """
+        return self.get_simulator_info_static(self.simulator, self)
 
     def get_time_info(self):
         """
