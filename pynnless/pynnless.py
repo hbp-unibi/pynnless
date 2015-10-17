@@ -1020,10 +1020,10 @@ class PyNNLess:
         res = {}
         if not self.simulator in self.HARDWARE_SYSTEMS:
             import multiprocessing
-            res["max_neuron_count"] = 1 << 31
-            res["parallel"] = multiprocessing.cpu_count()
+            res["max_neuron_count"] = 1 << 30
+            res["concurrency"] = multiprocessing.cpu_count()
         else:
-            res["parallel"] = 1
+            res["concurrency"] = 1
 
         # Set hardware-specific limitations
         if self.simulator == "ess":
