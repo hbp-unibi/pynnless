@@ -46,8 +46,9 @@ import pynnless_builder as builder
 import pynnless_constants as const
 import pynnless_exceptions as exceptions
 
-# Local logger
+# Local logger, write to stderr
 logger = logging.getLogger("PyNNLess")
+logger.addHandler(logging.StreamHandler())
 
 # Temporary file descriptors to the original stdout/stderr
 oldstdout = None
