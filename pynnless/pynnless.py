@@ -173,15 +173,18 @@ class PyNNLess:
         """
         Prints the last 100 lines of the file with the given name.
         """
-        with open(filename, 'r') as fd:
-            lines = fd.readlines()
-            if (len(lines) > 0):
-                logger.info("[" + title + "]")
-                if (len(lines) > 100):
-                    logger.info("[...]")
-                for line in lines[-100:]:
-                    logger.info(line.strip('\n\r'))
-                logger.info("[end]")
+        try:
+            with open(filename, 'r') as fd:
+                lines = fd.readlines()
+                if (len(lines) > 0):
+                    logger.info("[" + title + "]")
+                    if (len(lines) > 100):
+                        logger.info("[...]")
+                    for line in lines[-100:]:
+                        logger.info(line.strip('\n\r'))
+                    logger.info("[end]")
+        except:
+            pass
 
     @classmethod
     def _redirect_io(cls):
@@ -206,21 +209,32 @@ class PyNNLess:
         """
         global oldstdout, oldstderr, stdout_fn, stderr_fn
 
-        if oldstderr != None and stderr_fn != None:
-            sys.stderr.flush()
-            cls._redirect_fd_to_fd(oldstderr, 2)
-            if (tail):
-                cls._tail(stderr_fn, "stderr")
-            os.remove(stderr_fn)
+        try:
+            if oldstderr != None and stderr_fn != None:
+                sys.stderr.flush()
+                try:
+                    cls._redirect_fd_to_fd(oldstderr, 2)
+                except:
+                    pass
+                if (tail):
+                    cls._tail(stderr_fn, "stderr")
+                os.remove(stderr_fn)
+        except:
+            pass
+        finally:
             oldstderr = None
             stderr_fn = None
 
-        if oldstdout != None and stdout_fn != None:
-            sys.stdout.flush()
-            cls._redirect_fd_to_fd(oldstdout, 1)
-            if (tail):
-                cls._tail(stdout_fn, "stdout")
-            os.remove(stdout_fn)
+        try:
+            if oldstdout != None and stdout_fn != None:
+                sys.stdout.flush()
+                cls._redirect_fd_to_fd(oldstdout, 1)
+                if (tail):
+                    cls._tail(stdout_fn, "stdout")
+                os.remove(stdout_fn)
+        except:
+            pass
+        finally:
             oldstdout = None
             stdout_fn = None
 
