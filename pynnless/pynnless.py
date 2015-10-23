@@ -611,7 +611,7 @@ class PyNNLess:
 
             # Setup recording
             if (const.SIG_SPIKES in record):
-                if (is_source and self.simulator == "spiNNaker"):
+                if (is_source and self.simulator == "nmmc1"):
                     # Workaround for bug #122 in sPyNNaker
                     # https://github.com/SpiNNakerManchester/sPyNNaker/issues/122
                     logger.warning("spiNNaker backend does not support " +
@@ -808,7 +808,7 @@ class PyNNLess:
             elif (signal == const.SIG_GI):
                 # Workaround in bug #124 in sPyNNaker, see
                 # https://github.com/SpiNNakerManchester/sPyNNaker/issues/124
-                if (self.simulator != "spiNNaker"):
+                if (self.simulator != "nmmc1"):
                     return self._convert_pyNN7_signal(population.get_gsyn(), 3,
                         population.size)
         elif (self.version == 8):
