@@ -1110,12 +1110,16 @@ class PyNNLess:
         self.record_v_count = 0
         self.neuron_count = 0
 
+        # Fetch the timestep
+        timestep = self.get_time_step()
+
         # Automatically fetch the runtime of the network if none is given
         if duration <= 0:
             duration = self._auto_duration(network)
 
-        # Fetch the timestep
-        timestep = self.get_time_step()
+        # Round up the duration to the timestep -- fixes a problem with
+        # SpiNNaker
+        duration = int((duration + timestep) / timestep) * timestep
 
         # Generate the neuron populations
         population_count = len(network["populations"])
