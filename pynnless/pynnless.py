@@ -614,7 +614,7 @@ class PyNNLess:
                 if (is_source and self.simulator == "nmmc1"):
                     # Workaround for bug #122 in sPyNNaker
                     # https://github.com/SpiNNakerManchester/sPyNNaker/issues/122
-                    logger.warning("spiNNaker backend does not support " +
+                    self.warnings.add("spiNNaker backend does not support " +
                              "recording input spikes, returning 'spike_times'.")
                     if ("spike_times" in params):
                         setattr(res, "__fake_spikes", params["spike_times"])
@@ -789,7 +789,7 @@ class PyNNLess:
         :param signal: name of the signal that should be returned.
         """
         if (self.simulator == "nmpm1"):
-            logger.warning("nmpm1 does not support retrieving recorded " +
+            self.warnings.add("nmpm1 does not support retrieving recorded " +
                     "signals for now")
             return {"data": np.zeros((population.size, 0), dtype=np.float32),
                     "time": np.zeros((0), dtype=np.float32)}
@@ -1127,7 +1127,7 @@ class PyNNLess:
         # Build the connection matrices, and perform the actual connections
         connections = self._build_connections(network["connections"], timestep)
 
-        # Inform the user about the parameter adaptations
+        # Inform the user about the parameter adaptations and other warnings
         for warning in self.warnings:
             logger.warning(warning)
         for warning in self.parameter_warnings:
@@ -1136,6 +1136,7 @@ class PyNNLess:
             logger.warning("Parameter adaptations have been performed. Set " +
                 "the setup flag \"fix_parameters\" to False to suppress this " +
                 "behaviour.")
+	self.warnings = set()
 
         try:
             self._redirect_io()
@@ -1174,6 +1175,10 @@ class PyNNLess:
                 self.sim.end()
         finally:
             self._unredirect_io()
+
+	# Print post-execution warnings
+        for warning in self.warnings:
+            logger.warning(warning)
 
         # Store the time measurements, can be retrieved using the
         # "get_time_info" method
