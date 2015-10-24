@@ -1057,7 +1057,7 @@ class PyNNLess:
         elif simulator == "nmmc1":
             res["max_neuron_count"] = 3 * 48 * 16 * 128 # TODO: Actual board size
         elif simulator == "spikey":
-            res["max_neuron_count"] = 384
+            res["max_neuron_count"] = 192
             res["shared_parameters"] = ["v_rest", "v_reset", "v_thresh",
                     "e_rev_I"]
 
