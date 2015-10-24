@@ -1045,6 +1045,9 @@ class PyNNLess:
         else:
             res["concurrency"] = 1
 
+        # Whether the system alows only one set of neuron parameters
+        res["shared_parameters"] = []
+
         # Set hardware-specific limitations
         if simulator == "ess":
             res["max_neuron_count"] = 224
@@ -1055,6 +1058,8 @@ class PyNNLess:
             res["max_neuron_count"] = 48 * 256 # TODO: Actual board size
         elif simulator == "spikey":
             res["max_neuron_count"] = 384
+            res["shared_parameters"] = ["v_rest", "v_reset", "v_thresh",
+                    "e_rev_I"]
 
         return res
 
