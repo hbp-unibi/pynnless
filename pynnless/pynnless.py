@@ -1042,8 +1042,14 @@ class PyNNLess:
             import multiprocessing
             res["max_neuron_count"] = 1 << 30
             res["concurrency"] = multiprocessing.cpu_count()
+            res["is_hardware"] = False
+            res["is_software"] = True
+            res["is_emulation"] = False
         else:
             res["concurrency"] = 1
+            res["is_hardware"] = True
+            res["is_software"] = False
+            res["is_emulation"] = False
 
         # Whether the system alows only one set of neuron parameters
         res["shared_parameters"] = []
@@ -1051,6 +1057,7 @@ class PyNNLess:
         # Set hardware-specific limitations
         if simulator == "ess":
             res["max_neuron_count"] = 224
+            res["is_emulation"] = True
         elif simulator == "nmpm1":
             size = 4 if inst == None else inst.backend_data["neuron_size"]
             res["max_neuron_count"] = 224 // size
