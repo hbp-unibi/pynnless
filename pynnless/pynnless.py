@@ -1145,7 +1145,7 @@ class PyNNLess:
             logger.warning("Parameter adaptations have been performed. Set " +
                 "the setup flag \"fix_parameters\" to False to suppress this " +
                 "behaviour.")
-	self.warnings = set()
+        self.warnings = set()
 
         try:
             self._redirect_io()
@@ -1185,7 +1185,7 @@ class PyNNLess:
         finally:
             self._unredirect_io()
 
-	# Print post-execution warnings
+        # Print post-execution warnings
         for warning in self.warnings:
             logger.warning(warning)
 
