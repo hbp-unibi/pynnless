@@ -728,11 +728,11 @@ class PyNNLess:
         for row in spikes:
             nIdx = int(row[0]) - idx_offs
             if nIdx >= 0 and nIdx < n:
-                res[nIdx].append(np.float32(row[1]) * t_scale)
+                res[nIdx].append(float(row[1]) * t_scale)
             elif row[0] >= 0 and row[0] < n:
                 # In case the Spikey indexing bug gets fixed, this code should
                 # execute instead of the above.
-                res[int(row[0])].append(np.float32(row[1]) * t_scale)
+                res[int(row[0])].append(float(row[1]) * t_scale)
 
         # Make sure the resulting lists are sorted by time
         for i in xrange(n):
@@ -746,7 +746,7 @@ class PyNNLess:
         of lists containing the spike times for each neuron individually.
         """
         return [
-            [np.float32(spikes[i][j]) for j in xrange(len(spikes[i]))]
+            [float(spikes[i][j]) for j in xrange(len(spikes[i]))]
             for i in xrange(len(spikes))]
 
     @staticmethod
@@ -769,7 +769,7 @@ class PyNNLess:
         ds = np.zeros((n, len(ts)), dtype=np.float32)
         ds.fill(np.nan)
         for row in data:
-            ds[int(row[0]), tsidx[np.float32(row[1])]] = row[idx]
+            ds[int(row[0]), tsidx[float(row[1])]] = row[idx]
 
         return {"data": ds, "time": ts}
 
