@@ -618,17 +618,7 @@ class PyNNLess:
 
             # Setup recording
             if (const.SIG_SPIKES in record):
-                if (is_source and self.simulator == "nmmc1"):
-                    # Workaround for bug #122 in sPyNNaker
-                    # https://github.com/SpiNNakerManchester/sPyNNaker/issues/122
-                    self.warnings.add("spiNNaker backend does not support " +
-                             "recording input spikes, returning 'spike_times'.")
-                    if ("spike_times" in params):
-                        setattr(res, "__fake_spikes", params["spike_times"])
-                    else:
-                        setattr(res, "__fake_spikes", [[] for _ in xrange(count)])
-                else:
-                    res.record()
+                res.record()
             if (const.SIG_V in record):
                 # Special handling for voltage recording with Spikey
                 if (self.simulator == "spikey"):
@@ -766,9 +756,6 @@ class PyNNLess:
         :param population: reference at a PyNN population object from which the
         spikes should be obtained.
         """
-        if (hasattr(population, "__fake_spikes")):
-            spikes = getattr(population, "__fake_spikes")
-            return [spikes for _ in xrange(population.size)]
         if (self.version <= 7):
             # Workaround for spikey, which seems to index the neurons globally
             # instead of per-neuron
