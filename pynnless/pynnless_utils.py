@@ -39,6 +39,7 @@ def init_key(tar, src, key, default):
             tar[key] = copy.deepcopy(default)
 
 
+#
 # Simple FileLock implementation -- adapted from
 # https://raw.githubusercontent.com/derpston/python-simpleflock/master/src/simpleflock.py
 #
@@ -75,7 +76,8 @@ class FileLock:
             except IOError, ex:
                 if ex.errno != errno.EAGAIN: # Resource temporarily unavailable
                     raise
-                elif self._timeout is not None and time.time() > (start_lock_search + self._timeout):
+                elif (self._timeout is not None) and (
+                        time.time() > (start_lock_search + self._timeout)):
                     # Exceeded the user-specified timeout.
                     raise
 
