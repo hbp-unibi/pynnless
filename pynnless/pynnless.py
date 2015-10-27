@@ -620,7 +620,7 @@ class PyNNLess:
                     # available on NM-MC1 and Spikey
                     if hasattr(self.sim, "PopulationView"):
                         view = self.sim.PopulationView(res, [i])
-                        self._init_population(view, params[0])
+                        self._init_population(view, params[i])
                         if self.version <= 7:
                             view.set(params[i])
                         else:
