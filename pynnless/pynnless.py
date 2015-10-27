@@ -187,11 +187,15 @@ class PyNNLess:
             pass
 
     @classmethod
-    def _redirect_io(cls):
+    def _redirect_io(cls, do_redirect=True):
         """
         Redirects both stderr and stdout to some temporary files.
         """
         global oldstdout, oldstderr, stdout_fn, stderr_fn
+
+        # Abort if redirection is disabled
+        if not do_redirect:
+            return
 
         r = str(np.random.randint(1 << 16))
         if (oldstdout == None):
@@ -424,6 +428,9 @@ class PyNNLess:
         if "fix_parameters" in setup:
             self.fix_parameters = bool(setup["fix_parameters"])
             del setup["fix_parameters"]
+        if "redirect_io" in setup:
+            self.do_redirect = bool(setup["redirect_io"])
+            del setup["redirect_io"]
 
         # PyNN 0.7 compatibility hack: Update min_delay/timestep if only one
         # of the values is set
@@ -441,7 +448,7 @@ class PyNNLess:
         # Try to setup the simulator, do not output the clutter from the
         # simulators
         try:
-            self._redirect_io()
+            self._redirect_io(do_redirect=self.do_redirect)
             if (simulator == "nmpm1"):
                 self.backend_data = self._setup_nmpm1(sim, setup)
                 self.repeat_projections = self.backend_data["neuron_size"]
@@ -586,7 +593,7 @@ class PyNNLess:
         # also force the neuron membrane potential to be initialized with the
         # neuron membrane potential.
         try:
-            self._redirect_io()
+            self._redirect_io(do_redirect=self.do_redirect)
             res = self.sim.Population(count, type_, params)
         finally:
             self._unredirect_io(False)
@@ -658,7 +665,7 @@ class PyNNLess:
         # For NMPM1: register the population in the marocco instance
         if self.simulator == "nmpm1" and not is_source:
             try:
-                self._redirect_io()
+                self._redirect_io(do_redirect=self.do_redirect)
                 self.backend_data["marocco"].placement.add(res,
                       self.backend_data["hicann"])
             finally:
@@ -897,6 +904,9 @@ class PyNNLess:
 
     # Initialization time (time before sim.run)
     time_initialize = 0.0
+
+    # Flag indicating whether the I/O should be redirected
+    do_redirect = True
 
     def __init__(self, simulator, setup = {}):
         """
@@ -1155,7 +1165,7 @@ class PyNNLess:
         self.warnings = set()
 
         try:
-            self._redirect_io()
+            self._redirect_io(do_redirect=self.do_redirect)
 
             # Perform the actual connections
             for pids, descrs in connections.items():
