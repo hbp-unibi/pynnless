@@ -829,12 +829,33 @@ class PyNNLess:
 
     @classmethod
     def _auto_duration(cls, network):
+        """
+        Automatically calculates a network duration according to the last input
+        spike.
+        """
+
+        def _max_recursive(v, vs):
+            for v2 in vs:
+                if isinstance(v2, list):
+                    v = _max_recursive(v, v2)
+                else:
+                    v = max(v, v2)
+            return v
+
+        def _max_spike_time(duration, params):
+            if "spike_times" in params:
+                return _max_recursive(duration, params["spike_times"])
+            return duration
+
         duration = 0
         for p in network["populations"]:
-            if (("type" in p) and (p["type"] == const.TYPE_SOURCE) and
-                    ("params" in p) and ("spike_times" in p["params"]) and
-                    (len(p["params"]["spike_times"]) > 0)):
-                duration = max(duration, max(p["params"]["spike_times"]))
+            if ("type" in p) and (p["type"] == const.TYPE_SOURCE):
+                if "params" in p:
+                    if isinstance(p["params"], list):
+                        for i in xrange(len(p["params"])):
+                            duration = _max_spike_time(duration, p["params"][i])
+                    else:
+                        duration = _max_spike_time(duration, p["params"])
         return duration + cls.AUTO_DURATION_EXTENSION
 
     #
