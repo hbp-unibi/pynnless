@@ -1064,6 +1064,10 @@ class PyNNLess:
         # Whether the system alows only one set of neuron parameters
         res["shared_parameters"] = []
 
+        # Whether spike sources actually count as neurons in the
+        # "max_neuron_count" measure
+        res["sources_are_neurons"] = False
+
         # Set hardware-specific limitations
         if simulator == "ess":
             res["max_neuron_count"] = 224
@@ -1072,7 +1076,9 @@ class PyNNLess:
             size = 4 if inst == None else inst.backend_data["neuron_size"]
             res["max_neuron_count"] = 224 // size
         elif simulator == "nmmc1":
-            res["max_neuron_count"] = 3 * 48 * 16 * 128 # TODO: Actual board size
+#            res["max_neuron_count"] = 3 * 48 * 16 * 128 # TODO: Actual board size
+            res["sources_are_neurons"] = True
+            res["max_neuron_count"] = 2500
         elif simulator == "spikey":
             res["max_neuron_count"] = 192
             res["shared_parameters"] = ["v_rest", "v_reset", "v_thresh",
