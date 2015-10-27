@@ -18,8 +18,7 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Simple network consisting of 100 disconnected neurons and a spike source array
-for each.
+Simple network consisting of 10 disconnected neurons and a spike source array.
 """
 
 import sys
