@@ -34,10 +34,9 @@ import pkgutil
 # Logging
 import logging
 
-# Time measurements
+# Standard libraries
+import copy
 import time
-
-# For IO-redirection
 import os
 import sys
 
@@ -524,6 +523,20 @@ class PyNNLess:
 
         return params
 
+    def _init_population(self, population, params):
+        # Initialize membrane potential to v_rest on systems
+        # where the initialize method is available (not NMPM1
+        # and SPIKEY)
+        try:
+            if ((not is_source) and hasattr(res, "initialize")):
+                population.initialize("v", params["v_rest"])
+        except:
+            # This does not seem to be implemented on most
+            # platforms
+            self.warnings.add("Neuron membrane potential " +
+                    "initialization failed")
+            pass
+
     def _build_population(self, population, min_delay=0):
         """
         Used internally to creates a PyNN neuron population according to the
@@ -549,22 +562,25 @@ class PyNNLess:
         type_ = getattr(self.sim, type_name)
         is_source = type_name == const.TYPE_SOURCE
 
-        # Fetch the default parameters for this neuron type and merge them with
-        # parameters given for this population.
-        params = self.merge_default_parameters(population["params"], type_name,
-                type_)
+        params = [[]] * len(population["params"])
+        for i in xrange(len(population["params"])):
+            # Fetch the default parameters for this neuron type and merge them
+            # with parameters given for this population.
+            params[i] = self.merge_default_parameters(population["params"][i],
+                    type_name, type_)
 
-        # For some hardware platforms we need to adapt the parameters a little
-        # for the system to run -- if any change is done, PyNNLess issues a
-        # warning notifying the user about these adaptations
-        params = self._fix_parameters(params, population["params"], type_name)
+            # For some hardware platforms we need to adapt the parameters a
+            # little for the system to run -- if any change is done, PyNNLess
+            # issues a warning notifying the user about these adaptations
+            params[i] = self._fix_parameters(params[i], population["params"][i],
+                    type_name)
 
-        # Issue warnings about ignored parameters
-        for key, _ in population["params"].items():
-            if (not key in params):
-                self.warnings.add("Given parameter '" + key + "' does not " +
-                    "exist for neuron type '" + type_name + "'. Value " +
-                    "will be ignored!")
+            # Issue warnings about ignored parameters
+            for key, _ in population["params"][i].items():
+                if (not key in params[i]):
+                    self.warnings.add("Given parameter '" + key + "' does not " +
+                        "exist for neuron type '" + type_name + "'. Value " +
+                        "will be ignored!")
 
         # Fetch the parameter dimensions that should be recorded for this
         # population, make sure the elements in "record" are sorted
@@ -574,27 +590,56 @@ class PyNNLess:
                 self.warnings.add("Unknown signal \"" + signal
                     + "\". May be ignored by the backend.")
 
-        # Workaround for bug #378 in PyNN, see
-        # https://github.com/NeuralEnsemble/PyNN/issues/378
-        if ("spike_times" in params) and (len(params["spike_times"]) == 0):
-            del params["spike_times"]
-
         # Make sure the spike times are larger or equal to one -- this
         # otherwise causes a problem with the spikes simply discarded when
         # using NEST
-        if ("spike_times" in params):
-            min_t = max(min_delay, 1.0)
-            for i, t in enumerate(params["spike_times"]):
-                if t < min_t:
-                    params["spike_times"][i] = min_t
-            params["spike_times"].sort()
+        for i in xrange(len(params)):
+            if "spike_times" in params[i]:
+                min_t = max(min_delay, 1.0)
+                for j, t in enumerate(params[i]["spike_times"]):
+                    if t < min_t:
+                        params[i]["spike_times"][j] = min_t
+                params[i]["spike_times"].sort()
 
         # Create the output population, in case this is not a source population,
         # also force the neuron membrane potential to be initialized with the
         # neuron membrane potential.
         try:
             self._redirect_io(do_redirect=self.do_redirect)
-            res = self.sim.Population(count, type_, params)
+            res = self.sim.Population(count, type_, copy.deepcopy(params[0]))
+            if len(params) == 1:
+                # Use global parameters if the length of the parameter list is
+                # exactly one
+                self._init_population(res, params[0])
+            else:
+                for i in xrange(count):
+                    # The PopulationView class is the best way to set individual
+                    # neuron parameters in a population, however it is not
+                    # available on NM-MC1 and Spikey
+                    if hasattr(self.sim, "PopulationView"):
+                        view = self.sim.PopulationView(res, [i])
+                        self._init_population(view, params[0])
+                        if self.version <= 7:
+                            view.set(params[i])
+                        else:
+                            view.set(**params[i])
+                    else:
+                        # Use the tset method which has a less convenient
+                        # interface and requires an array for each parameter,
+                        # containing the values for each neuron.
+                        keys = params[0].keys()
+                        tvals = dict([(key, [[]] * count) for key in keys])
+                        uniform = dict([(key, True) for key in keys])
+                        for i in xrange(count):
+                            for k in keys:
+                                tvals[k][i] = params[i][k]
+                                if i >= 1:
+                                    # Do no call tset if it is not necessary
+                                    uniform[k] = (uniform[k] and
+                                            (tvals[k][i - 1] == tvals[k][i]))
+                        for k in tvals.keys():
+                            if not uniform[k]:
+                                res.tset(k, tvals[k])
         finally:
             self._unredirect_io(False)
 
@@ -607,15 +652,6 @@ class PyNNLess:
 
         # Setup recording
         if (self.version <= 7):
-            # Initialize membrane potential to v_rest on systems where the
-            # initialize method is available (not NMPM1 and SPIKEY)
-            try:
-                if ((not is_source) and hasattr(res, "initialize")):
-                    res.initialize("v", params["v_rest"])
-            except:
-                # NMPM1 raises an exception here
-                pass
-
             # Setup recording
             if (const.SIG_SPIKES in record):
                 res.record()
@@ -639,12 +675,6 @@ class PyNNLess:
             if ((const.SIG_GE in record) or (const.SIG_GI in record)):
                 res.record_gsyn()
         elif (self.version == 8):
-            # Initialize membrane potential to v_rest, work around
-            # "need more PhD-students"-exception on NMPM1 (where this condition
-            # is fulfilled anyways)
-            if ((not is_source) and (self.simulator != "nmpm1")):
-                    res.initialize(v=params["v_rest"])
-
             # Setup recording
             res.record(record)
 

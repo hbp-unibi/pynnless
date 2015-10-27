@@ -61,17 +61,24 @@ class Population(dict):
         if (not self["type"] in const.TYPES):
             raise exceptions.PyNNLessException("Invalid neuron type '"
                 + str(self["type"]) + "' supported are " + str(const.TYPES))
+        if len(self["params"]) > 1 and len(self["params"]) != self["count"]:
+            raise exceptions.PyNNLessException("Population parameter list " +
+                "must either have exactly one entry (shared by all neurons " +
+                "in the population) or exactly \"count\" entries.")
 
     def _canonicalize(self):
         """
         Internal function, makes sure the "record" list is indeed a list, is
-        sorted and contains no double entries.
+        sorted and contains no double entries. Converts "params" to a list if
+        it is none.
         """
         if isinstance(self["record"], str):
             self["record"] = [self["record"]]
         else:
             self["record"] = list(self["record"])
         self["record"] = list(set(self["record"]))
+        if not isinstance(self["params"], list):
+            self["params"] = [self["params"]]
         return self
 
     def record(self, signal):
@@ -94,24 +101,13 @@ class SourcePopulation(Population):
     Population of spike sources.
     """
     def __init__(self, data={}, count=1, spike_times=[], record=[]):
-        Population.__init__(self, data, count, const.TYPE_SOURCE,
-                {"spike_times": spike_times}, record)
-
-    def _canonicalize(self):
-        if not "spike_times" in self["params"]:
-            self["params"]["spike_times"] = []
-
-    def add_spike(self, t):
-        self._canonicalize()
-        self["params"]["spike_times"].append(t)
-
-    def add_spikes(self, ts):
-        self._canonicalize()
-        self["params"]["spike_times"] = self["params"]["spike_times"] + ts
-
-    def sort_spikes(self):
-        self._canonicalize()
-        self["params"]["spike_times"].sort()
+        # Convert spike_time lists to a list of parameters
+        if len(spike_times) > 0 and isinstance(spike_times[0], list):
+            params = [{"spike_times": t} for t in spike_times]
+        else:
+            params = {"spike_times": spike_times}
+        Population.__init__(self, data, count, const.TYPE_SOURCE, params,
+                record)
 
 
 class NeuronPopulation(Population):
