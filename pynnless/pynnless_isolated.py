@@ -109,7 +109,7 @@ class PyNNLessIsolated:
         if info["is_hardware"]:
             lockfile = '.~' + self.simulator
 
-        with FileLock(lockfile):
+        with FileLock(lockfile, release=False):
             # Call the _PyNNLess_Async_Main method in another process
             q = multiprocessing.Queue()
             p = multiprocessing.Process(

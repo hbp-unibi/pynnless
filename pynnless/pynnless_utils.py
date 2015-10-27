@@ -55,10 +55,11 @@ class FileLock:
     lock file as necessary.
     """
 
-    def __init__(self, path, timeout = None):
+    def __init__(self, path, timeout = None, release=True):
         self._path = path
         self._timeout = timeout
         self._fd = None
+        self._release = release
 
     def __enter__(self):
         # Simply do nothing if no path was given
@@ -83,8 +84,9 @@ class FileLock:
             time.sleep(0.1)
 
     def __exit__(self, *args):
-        # Simply do nothing if no path was given
-        if self._path == None:
+        # Simply do nothing if no path was given or the lock should not be
+        # released automatically (it will be released after the process exists)
+        if (self._path == None) or (not self._release):
             return
 
         # Unlock the file and close the handle
