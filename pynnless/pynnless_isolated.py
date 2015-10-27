@@ -33,22 +33,23 @@ import multiprocessing
 from pynnless import PyNNLess
 from pynnless_utils import FileLock
 
-def _PyNNLessIsolatedMain(q, simulator, setup, network, duration):
+def _PyNNLessIsolatedMain(q, lockfile, simulator, setup, network, duration):
     """
     Function to be executed in its own isolated process.
     """
-    inst = None
-    res = None
-    times = None
-    exception = None
-    try:
-        inst = PyNNLess(simulator, setup)
-        res = inst.run(network, duration)
-        times = inst.get_time_info()
-    except Exception, ex:
-        exception = str(ex)
+    with FileLock(lockfile, release=False):
+        inst = None
+        res = None
+        times = None
+        exception = None
+        try:
+            inst = PyNNLess(simulator, setup)
+            res = inst.run(network, duration)
+            times = inst.get_time_info()
+        except Exception, ex:
+            exception = str(ex)
 
-    q.put((res, times, exception))
+        q.put((res, times, exception))
 
 class PyNNLessIsolated:
     #
@@ -67,9 +68,10 @@ class PyNNLessIsolated:
     # Time information received from the subprocess
     times = {}
 
-    def __init__(self, simulator, setup = {}):
+    def __init__(self, simulator, setup = {}, concurrent=False):
         self.simulator = simulator
         self.setup = setup
+        self.concurrent = concurrent
 
     @staticmethod
     def simulators():
@@ -109,16 +111,17 @@ class PyNNLessIsolated:
         if info["is_hardware"]:
             lockfile = '.~' + self.simulator
 
-        with FileLock(lockfile, release=False):
-            # Call the _PyNNLess_Async_Main method in another process
-            q = multiprocessing.Queue()
-            p = multiprocessing.Process(
-                    target=_PyNNLessIsolatedMain,
-                    args=(q, self.simulator, self.setup, network, duration)
-                )
-            p.start()
-            res, self.times, exception = q.get()
-            p.join()
+        # Call the _PyNNLess_Async_Main method in another process and wait for
+        # the response
+        q = multiprocessing.Queue()
+        p = multiprocessing.Process(
+                target=_PyNNLessIsolatedMain,
+                args=(q, lockfile, self.simulator, self.setup, network,
+                    duration)
+            )
+        p.start()
+        res, self.times, exception = q.get()
+        p.join()
 
         # Rethrow an exception if one happened in the child process
         if exception != None:
