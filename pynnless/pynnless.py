@@ -606,10 +606,12 @@ class PyNNLess:
         # neuron membrane potential.
         try:
             self._redirect_io(do_redirect=self.do_redirect)
+            # Use global parameters if the length of the parameter list is
+            # exactly one -- otherwise we'll override the parameters given here
+            # in a later step.
+            # Note: deepcopy is needed because of spyNNaker bug #161
             res = self.sim.Population(count, type_, copy.deepcopy(params[0]))
             if len(params) == 1:
-                # Use global parameters if the length of the parameter list is
-                # exactly one
                 self._init_population(res, params[0])
             else:
                 for i in xrange(count):
@@ -627,18 +629,22 @@ class PyNNLess:
                         # Use the tset method which has a less convenient
                         # interface and requires an array for each parameter,
                         # containing the values for each neuron.
+
+                        # First assemble a list of parameter values for each
+                        # parameter key. Note that the available parameter keys
+                        # were unified in the merge_default_parameters method
                         keys = params[0].keys()
                         tvals = dict([(key, [[]] * count) for key in keys])
-                        uniform = dict([(key, True) for key in keys])
+                        uni = dict([(key, True) for key in keys])
                         for i in xrange(count):
                             for k in keys:
                                 tvals[k][i] = params[i][k]
-                                if i >= 1:
-                                    # Do no call tset if it is not necessary
-                                    uniform[k] = (uniform[k] and
-                                            (tvals[k][i - 1] == tvals[k][i]))
+                                uni[k] = uni[k] and tvals[k][0] == tvals[k][i]
+
+                        # Actually call tset for all keys for which there is a
+                        # difference
                         for k in tvals.keys():
-                            if not uniform[k]:
+                            if not uni[k]:
                                 res.tset(k, tvals[k])
         finally:
             self._unredirect_io(False)
