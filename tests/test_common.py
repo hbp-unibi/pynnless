@@ -183,10 +183,10 @@ class TestCommon(unittest.TestCase):
             [3, 0.1],
         ], 4)
         expected = [
-            map(np.float32, [1.2]),
-            map(np.float32, [0.1, 0.2, 0.3]),
-            map(np.float32, [2.2, 2.3]),
-            map(np.float32, [0.1, 0.2])
+            [1.2],
+            [0.1, 0.2, 0.3],
+            [2.2, 2.3],
+            [0.1, 0.2]
         ]
         self.assertEqual(spikes, expected)
 
@@ -198,10 +198,10 @@ class TestCommon(unittest.TestCase):
             np.asarray([0.1, 0.2]),
         ])
         expected = [
-            map(np.float32, [1.2]),
-            map(np.float32, [0.1, 0.2, 0.3]),
-            map(np.float32, [2.2, 2.3]),
-            map(np.float32, [0.1, 0.2])
+            [1.2],
+            [0.1, 0.2, 0.3],
+            [2.2, 2.3],
+            [0.1, 0.2]
         ]
         self.assertEqual(spikes, expected)
 
