@@ -523,19 +523,19 @@ class PyNNLess:
 
         return params
 
-    def _init_population(self, population, params):
+    def _init_cells(self, is_source, cells, params):
         # Initialize membrane potential to v_rest on systems
         # where the initialize method is available (not NMPM1
         # and SPIKEY)
-        try:
-            if ((not is_source) and hasattr(res, "initialize")):
-                population.initialize("v", params["v_rest"])
-        except:
-            # This does not seem to be implemented on most
-            # platforms
-            self.warnings.add("Neuron membrane potential " +
-                    "initialization failed")
-            pass
+        if ((not is_source) and hasattr(cells, "initialize")):
+            try:
+                cells.initialize("v", params["v_rest"])
+            except:
+                # This does not seem to be implemented on most
+                # platforms
+                self.warnings.add("Neuron membrane potential " +
+                        "initialization failed")
+                pass
 
     def _build_population(self, population, min_delay=0):
         """
@@ -612,7 +612,7 @@ class PyNNLess:
             # Note: deepcopy is needed because of spyNNaker bug #161
             res = self.sim.Population(count, type_, copy.deepcopy(params[0]))
             if len(params) == 1:
-                self._init_population(res, params[0])
+                self._init_cells(is_source, res, params[0])
             else:
                 for i in xrange(count):
                     # The PopulationView class is the best way to set individual
@@ -620,7 +620,7 @@ class PyNNLess:
                     # available on NM-MC1 and Spikey
                     if hasattr(self.sim, "PopulationView"):
                         view = self.sim.PopulationView(res, [i])
-                        self._init_population(view, params[i])
+                        self._init_cells(is_source, view, params[i])
                         if self.version <= 7:
                             view.set(params[i])
                         else:
