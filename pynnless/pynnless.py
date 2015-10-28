@@ -626,7 +626,7 @@ class PyNNLess:
                         else:
                             view.set(**params[i])
 #                    # Only for reference: This works nowhere (except Spikey)
-#                    if hasattr(res, "__getitem__"):
+#                    elif hasattr(res, "__getitem__"):
 #                        if not is_source:
 #                            try:
 #                                self.sim.initialize(res[i], params[i]["v_rest"])
