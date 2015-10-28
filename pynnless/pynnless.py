@@ -769,7 +769,7 @@ class PyNNLess:
         ds = np.zeros((n, len(ts)), dtype=np.float32)
         ds.fill(np.nan)
         for row in data:
-            ds[int(row[0]), tsidx[float(row[1])]] = row[idx]
+            ds[int(row[0]), tsidx[np.float32(row[1])]] = row[idx]
 
         return {"data": ds, "time": ts}
 
