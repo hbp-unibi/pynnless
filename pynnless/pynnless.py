@@ -615,16 +615,30 @@ class PyNNLess:
                 self._init_cells(is_source, res, params[0])
             else:
                 for i in xrange(count):
-                    # The PopulationView class is the best way to set individual
-                    # neuron parameters in a population, however it is not
-                    # available on NM-MC1 and Spikey
                     if hasattr(self.sim, "PopulationView"):
+                        # The PopulationView class is the best way to set
+                        # individual neuron parameters in a population, however
+                        # it is not available on NM-MC1 and Spikey
                         view = self.sim.PopulationView(res, [i])
                         self._init_cells(is_source, view, params[i])
                         if self.version <= 7:
                             view.set(params[i])
                         else:
                             view.set(**params[i])
+#                    # Only for reference: This works nowhere (except Spikey)
+#                    if hasattr(res, "__getitem__"):
+#                        if not is_source:
+#                            try:
+#                                self.sim.initialize(res[i], params[i]["v_rest"])
+#                            except:
+#                                pass # Does not work with Spikey and NMPM1
+#                        if self.simulator == "spikey":
+#                            for key in params[i].keys():
+#                                self.sim.set(res[i], res[i].cellclass, key, params[i][key])
+#                        elif self.version <= 7:
+#                            self.sim.set(res[i], params[i])
+#                        else:
+#                            self.sim.set(res[i], **params[i])
                     else:
                         # Use the tset method which has a less convenient
                         # interface and requires an array for each parameter,
