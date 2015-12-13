@@ -495,13 +495,6 @@ class PyNNLess:
         # Spikey specific adaptations
         if self.simulator == "spikey":
             if type_name == "IF_facets_hardware1":
-                # Convert tau_m to g_leak
-                if (not ("g_leak" in params_orig)) and ("tau_m" in params_orig):
-                    # g_leak [nS] = 0.2 [nF] / tau_m [mV]
-                    params["g_leak"] = (0.2e-9 /
-                            (params_orig["tau_m"] * 1e-3)) * 1e9
-                    self.parameter_warnings.add("Converted tau_m to g_leak")
-
                 # Shift the voltages below -55.0 mV
                 vs = [params["v_rest"], params["v_reset"], params["v_thresh"],
                         params["e_rev_I"]]
@@ -514,6 +507,29 @@ class PyNNLess:
                     params["v_thresh"] = params["v_thresh"] + vOffs
                     self.parameter_warnings.add("Neuron potentials were "
                         + "shifted to stay below -55mV")
+
+        # Convert g_leak to tau_m and vice versa
+        cm = None
+        if "cm" in params:
+            cm = params["cm"] * 1e-9
+        elif self.simulator == "spikey":
+            cm = 0.2e-9
+        if ("tau_m" in params_orig) and ("g_leak" in params_orig):
+            if ("tau_m" in params):
+                self.parameter_warnings.add(
+                    "Specified both tau_m and g_leak, using tau_m")
+            else:
+                self.parameter_warnings.add(
+                    "Specified both tau_m and g_leak, using g_leak")
+        elif (not cm is None):
+            if ("g_leak" in params) and ("tau_m" in params_orig):
+                # g_leak [nS] = cm [nF] / tau_m [ms]
+                params["g_leak"] = (cm / (params_orig["tau_m"] * 1e-3)) * 1e9
+                self.parameter_warnings.add("Converted tau_m to g_leak")
+            if ("tau_m" in params) and ("g_leak" in params_orig):
+                # tau_m [ms] [nS] = cm [nF] / g_leak [ms]
+                params["tau_m"] = (cm / (params_orig["g_leak"] * 1e-6)) * 1e3
+                self.parameter_warnings.add("Converted g_leak to tau_m")
 
         return params
 
