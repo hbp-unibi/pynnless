@@ -183,10 +183,10 @@ class TestCommon(unittest.TestCase):
             [3, 0.1],
         ], 4)
         expected = [
-            map(np.float32, [1.2]),
-            map(np.float32, [0.1, 0.2, 0.3]),
-            map(np.float32, [2.2, 2.3]),
-            map(np.float32, [0.1, 0.2])
+            [1.2],
+            [0.1, 0.2, 0.3],
+            [2.2, 2.3],
+            [0.1, 0.2]
         ]
         self.assertEqual(spikes, expected)
 
@@ -198,10 +198,10 @@ class TestCommon(unittest.TestCase):
             np.asarray([0.1, 0.2]),
         ])
         expected = [
-            map(np.float32, [1.2]),
-            map(np.float32, [0.1, 0.2, 0.3]),
-            map(np.float32, [2.2, 2.3]),
-            map(np.float32, [0.1, 0.2])
+            [1.2],
+            [0.1, 0.2, 0.3],
+            [2.2, 2.3],
+            [0.1, 0.2]
         ]
         self.assertEqual(spikes, expected)
 
@@ -237,4 +237,51 @@ class TestCommon(unittest.TestCase):
 
         np.testing.assert_equal(expected["data"], signal["data"])
         np.testing.assert_equal(expected["time"], signal["time"])
+
+    def test_auto_duration(self):
+        net = {
+            "populations": [
+                {
+                    "params": {
+                        "spike_times": [100, 200]
+                    }
+                }
+            ]
+        }
+        self.assertEqual(PyNNLess.AUTO_DURATION_EXTENSION,
+                PyNNLess._auto_duration(net))
+
+        net = {
+            "populations": [
+                {
+                    "params": {
+                        "spike_times": [100, 200]
+                    },
+                    "type": TYPE_SOURCE
+                }
+            ]
+        }
+        self.assertEqual(200 + PyNNLess.AUTO_DURATION_EXTENSION,
+                PyNNLess._auto_duration(net))
+
+        net = {
+            "populations": [
+                {
+                    "params": {
+                        "spike_times": [100, 200]
+                    },
+                    "type": TYPE_SOURCE
+                },
+                {
+                    "params": [{
+                        "spike_times": [300, 400]
+                    }, {
+                        "spike_times": [500, 600]
+                    }],
+                    "type": TYPE_SOURCE
+                }
+            ]
+        }
+        self.assertEqual(600 + PyNNLess.AUTO_DURATION_EXTENSION,
+                PyNNLess._auto_duration(net))
 

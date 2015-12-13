@@ -35,7 +35,7 @@ class TestBuilder(unittest.TestCase):
         self.assertEqual(1, pop["count"])
         self.assertEqual(TYPE_IF_COND_EXP, pop["type"])
         self.assertEqual([], pop["record"])
-        self.assertEqual({}, pop["params"])
+        self.assertEqual({}, pop["params"][0])
 
         pop.record_spikes()
         self.assertEqual([SIG_SPIKES], pop["record"])

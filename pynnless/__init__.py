@@ -33,13 +33,17 @@ from pynnless_constants import *
 from pynnless_exceptions import PyNNLessException
 from pynnless_exceptions import PyNNLessVersionException
 
+# Import the "PyNNLessIsolated" class into the top-level package namespace
+from pynnless_isolated import PyNNLessIsolated
+
 # Current version of the "PyNNLess" wrapper
 __version__ = "1.0.0"
 
 # Export all classes
 __all__ = [
-    'PyNNLess', 'PyNNLessException', 'PyNNLessVersionException', 'Population',
-    'SourcePopulation', 'IfCondExpPopulation', 'AdExPopulation', 'Network',
+    'PyNNLess', 'PyNNLessIsolated', 'PyNNLessException',
+    'PyNNLessVersionException', 'Population', 'SourcePopulation',
+    'IfCondExpPopulation', 'AdExPopulation', 'Network',
     'SIGNALS', 'SIG_SPIKES', 'SIG_GE', 'SIG_GI', 'SIG_V', 'TYPES', 'TYPE_AD_EX',
     'TYPE_SOURCE', 'TYPE_IF_COND_EXP', 'PARAMETER_LIMITS'
     ]
