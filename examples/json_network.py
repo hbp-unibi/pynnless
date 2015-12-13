@@ -40,4 +40,14 @@ print("Done!")
 
 # Serialize the output as json
 print("Writing result " + common.setup.outfile)
-json.dump(res, open(common.setup.outfile, 'w'), indent=4)
+
+# The following class is needed to workaround the
+# "4.1999998 is not JSON serializable" error message
+# stemming from the use of np.float32. Python is sooo simple.
+class Encoder(json.JSONEncoder):
+    def default(self, o):
+#        if (not isinstance(o, dict)) and (not isinstance(o, list)):
+            return str(o)
+#        return super(DecimalEncoder, self).default(o)
+json.dump(res, open(common.setup.outfile, 'w'), indent=4, cls=Encoder)
+
