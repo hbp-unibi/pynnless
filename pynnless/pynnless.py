@@ -1125,7 +1125,7 @@ class PyNNLess:
         res = {}
         if not simulator in cls.HARDWARE_SYSTEMS:
             import multiprocessing
-            res["max_neuron_count"] = 1 << 30
+            res["max_neuron_count"] = 512
             res["concurrency"] = multiprocessing.cpu_count()
             res["is_hardware"] = False
             res["is_software"] = True
