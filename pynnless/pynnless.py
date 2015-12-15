@@ -1268,8 +1268,9 @@ class PyNNLess:
             res = [{} for _ in xrange(population_count)]
             for i in xrange(population_count):
                 if "record" in network["populations"][i]:
-                    population = builder.Population(network["populations"][i])
-                    for signal in population["record"]:
+                    signals = builder.Population.canonicalize_record(
+                            network["populations"][i]["record"])
+                    for signal in signals:
                         if (signal == const.SIG_SPIKES):
                             res[i][signal] = self._fetch_spikes(populations[i])
                         else:

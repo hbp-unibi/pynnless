@@ -66,17 +66,26 @@ class Population(dict):
                 "must either have exactly one entry (shared by all neurons " +
                 "in the population) or exactly \"count\" entries.")
 
+    @staticmethod
+    def canonicalize_record(record):
+        """
+        Makes sure the "record" signal list is indeed a list, is sorted and
+        contains no double entries.
+        """
+        if isinstance(record, str):
+            record = [record]
+        else:
+            record = list(record)
+        record = list(set(record))
+        return record
+
     def _canonicalize(self):
         """
         Internal function, makes sure the "record" list is indeed a list, is
         sorted and contains no double entries. Converts "params" to a list if
         it is none.
         """
-        if isinstance(self["record"], str):
-            self["record"] = [self["record"]]
-        else:
-            self["record"] = list(self["record"])
-        self["record"] = list(set(self["record"]))
+        self["record"] = self.canonicalize_record(self["record"])
         if not isinstance(self["params"], list):
             self["params"] = [self["params"]]
         return self
