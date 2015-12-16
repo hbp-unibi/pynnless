@@ -431,6 +431,9 @@ class PyNNLess:
         if "redirect_io" in setup:
             self.do_redirect = bool(setup["redirect_io"])
             del setup["redirect_io"]
+        if "summarise_io" in setup:
+            self.summarise_io = bool(setup["summarise_io"])
+            del setup["summarise_io"]
 
         # PyNN 0.7 compatibility hack: Update min_delay/timestep if only one
         # of the values is set
@@ -455,7 +458,7 @@ class PyNNLess:
             else:
                 sim.setup(**setup)
         finally:
-            self._unredirect_io()
+            self._unredirect_io(self.summarise_io)
         return setup
 
     def _remap_neuron_type(self, type_name):
@@ -983,6 +986,9 @@ class PyNNLess:
     # Flag indicating whether the I/O should be redirected
     do_redirect = True
 
+    # Flag indicating whether the I/O should be summarised
+    summarise_io = True
+
     def __init__(self, simulator, setup = {}):
         """
         Tries to load the PyNN simulator with the given name. Throws an
@@ -1282,7 +1288,7 @@ class PyNNLess:
             if (not (self.simulator in self.PREMATURE_END_SIMULATORS)):
                 self.sim.end()
         finally:
-            self._unredirect_io()
+            self._unredirect_io(self.summarise_io)
 
         # Print post-execution warnings
         for warning in self.warnings:
