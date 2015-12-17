@@ -121,7 +121,7 @@ class PyNNLess:
         "ess": {
             "ess_params": {"perfectSynapseTrafo": True},
             "hardware": "$sim.hardwareSetup[\"one-hicann\"]",
-            "ignoreHWParameterRanges": False,
+            "ignoreHWParameterRanges": True,
             "useSystemSim": True,
         },
         "nmmc1": {
