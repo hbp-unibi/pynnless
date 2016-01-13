@@ -28,6 +28,7 @@ overhead due to inter process communication and that not all public methods of
 the PyNNLess class are implemented to the full extent.
 """
 
+import traceback
 import multiprocessing
 
 from pynnless import PyNNLess
@@ -46,8 +47,8 @@ def _PyNNLessIsolatedMain(q, lockfile, simulator, setup, network, duration):
             inst = PyNNLess(simulator, setup)
             res = inst.run(network, duration)
             times = inst.get_time_info()
-        except Exception, ex:
-            exception = str(ex)
+        except:
+            exception = traceback.format_exc()
 
         q.put((res, times, exception))
 
