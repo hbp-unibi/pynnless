@@ -75,7 +75,8 @@ class FileLock:
                 return
             except IOError, ex:
                 if ex.errno != errno.EAGAIN: # Resource temporarily unavailable
-                    raise
+                    self.__exit__()
+                    return
                 elif (self._timeout is not None) and (
                         time.time() > (start_lock_search + self._timeout)):
                     # Exceeded the user-specified timeout.
@@ -92,7 +93,11 @@ class FileLock:
             return
 
         # Unlock the file and close the handle
-        fcntl.flock(self._fd, fcntl.LOCK_UN)
+        try:
+           fcntl.flock(self._fd, fcntl.LOCK_UN)
+        except:
+            pass
+
         os.close(self._fd)
         self._fd = None
 
