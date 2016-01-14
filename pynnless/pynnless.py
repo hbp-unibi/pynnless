@@ -259,7 +259,7 @@ class PyNNLess:
         elif (version[0:3] == '0.8'):
             return 8
         raise exceptions.PyNNLessVersionException("Unsupported PyNN version '"
-            + version + "', supported are pyNN 0.7 and 0.8")
+            + version + "', supported are pyNN 0.6, 0.7 and 0.8")
 
     @classmethod
     def _lookup_simulator(cls, simulator):
