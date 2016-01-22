@@ -24,19 +24,19 @@ def is_function(f):
     """
     return hasattr(f, '__call__')
 
-def init_key(tar, src, key, default):
+def init_key(tar, src, key, default, _type=lambda x: x):
     """
     Inits the key "key" in the target dictionary "tar" with the corresponding
     value in "src". If there is no such value in "src", uses the given default
     value instead.
     """
     if key in src:
-        tar[key] = copy.deepcopy(src[key])
+        tar[key] = _type(copy.deepcopy(src[key]))
     else:
         if is_function(default):
-            tar[key] = copy.deepcopy(default())
+            tar[key] = _type(copy.deepcopy(default()))
         else:
-            tar[key] = copy.deepcopy(default)
+            tar[key] = _type(copy.deepcopy(default))
 
 
 #
