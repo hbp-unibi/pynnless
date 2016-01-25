@@ -43,7 +43,7 @@ class Population(dict):
         :param record: Variables to be recorded
         :param params: Neuron population parameters
         """
-        utils.init_key(self, data, "count", count)
+        utils.init_key(self, data, "count", count, int)
         utils.init_key(self, data, "type", _type)
         utils.init_key(self, data, "params", params)
         utils.init_key(self, data, "record", record)
