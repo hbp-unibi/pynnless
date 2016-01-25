@@ -1086,6 +1086,9 @@ class PyNNLess:
                     res[key] = float(params[key])
                 else:
                     res[key] = params[key]
+        # The default empty PyNN "spike_times" parameter is faulty
+        if (not "spike_times" in params) and ("spike_times" in res):
+            del res["spike_times"]
         return res
 
     @staticmethod
