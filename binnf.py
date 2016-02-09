@@ -27,40 +27,33 @@ import os
 import subprocess
 import logging
 
+import pynnless as pynl
 import pynnless.pynnless_binnf as binnf
 
-# Fetch a logger
-logger = logging.getLogger("binnf")
-
 # Check the script parameters
-if len(sys.argv) != 4:
-    print("Usage: ./binnf.py <SIMULATOR> <IN> <OUT>")
+if len(sys.argv) != 4 and len(sys.argv) != 2:
+    print("Usage: ./binnf.py <SIMULATOR> [<IN> <OUT>]")
     print("Where <IN> and <OUT> may be \"-\" to read from/write to "
-            + " stdin/stdout")
+            + " stdin/stdout (default)")
     sys.exit(1)
+
+# Fetch the simulator name from the command line parameters
 simulator = sys.argv[1]
-input_file = sys.stdin if sys.argv[2] == "-" else open(sys.argv[2], 'rb')
-output_file = sys.stdout if sys.argv[3] == "-" else open(sys.argv[3], 'wb')
 
-# Read the input file
-has_data = False;
-logger.info("Reading input data...")
+# Fetch the input/output file
+input_file = (sys.stdin if (len(sys.argv) < 3
+        or sys.argv[2] == "-") else open(sys.argv[2], 'rb'))
+output_file = (sys.stdout if (len(sys.argv) < 4
+        or sys.argv[3] == "-") else open(sys.argv[3], 'wb'))
 
-import time
-start = time.time()
-while True:
-    try:
-        # Deserialise a single input block
-        name, header, matrix = binnf.deseralise(input_file)
-        has_data = True
-    except:
-        # If no data block has been read from the input file, raise the
-        # exception. Otherwise most likely the end of the file has been reached.
-        # In this case, abort.
-        if not has_data:
-            raise
-        else:
-            break
-end = time.time()
-print(end - start)
+# Read the input data
+network = binnf.read_network(input_file)
+print network
+
+# Open the simulator and run the network
+#res = pynl.PyNNLess(simulator).run(network)
+
+# Serialise the results
+# TODO
+
 
