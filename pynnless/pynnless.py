@@ -746,9 +746,9 @@ class PyNNLess:
         for connection in connections:
             src, tar, weight, delay = connection
             pids = (src[0], tar[0])
-            descrs = (
-                src[1], tar[1], abs(weight) if separate else weight, max(
-                    min_delay, delay))
+            descrs = (src[1], tar[1],
+                        float(abs(weight) if separate else weight),
+                        float(max(min_delay, delay)))
             res_tar = res_exc if (not separate) or weight > 0 else res_inh
             if (pids in res_tar):
                 res_tar[pids].append(descrs)
