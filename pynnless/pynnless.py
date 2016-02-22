@@ -59,6 +59,7 @@ oldstderr = None
 stdout_fn = None
 stderr_fn = None
 
+
 class PyNNLess:
     """
     The backend class is used as an abstraction to the actual PyNN backend,
@@ -97,7 +98,8 @@ class PyNNLess:
     # retrieved
     PREMATURE_END_SIMULATORS = ["nmpm1"]
 
-    # List of simulators which are hardware systems without an explicit timestep
+    # List of simulators which are hardware systems without an explicit
+    # timestep
     ANALOGUE_SYSTEMS = ["ess", "nmpm1", "spikey"]
 
     # List of hardware systems
@@ -198,10 +200,10 @@ class PyNNLess:
             return
 
         r = str(np.random.randint(1 << 16))
-        if (oldstdout == None):
+        if (oldstdout is None):
             stdout_fn = "stdout." + r + ".tmp"
             oldstdout = cls._redirect_fd_to_file(1, stdout_fn)
-        if (oldstderr == None):
+        if (oldstderr is None):
             stderr_fn = "stderr." + r + ".tmp"
             oldstderr = cls._redirect_fd_to_file(2, stderr_fn)
 
@@ -214,7 +216,7 @@ class PyNNLess:
         global oldstdout, oldstderr, stdout_fn, stderr_fn
 
         try:
-            if oldstderr != None and stderr_fn != None:
+            if oldstderr is not None and stderr_fn is not None:
                 sys.stderr.flush()
                 try:
                     cls._redirect_fd_to_fd(oldstderr, 2)
@@ -230,7 +232,7 @@ class PyNNLess:
             stderr_fn = None
 
         try:
-            if oldstdout != None and stdout_fn != None:
+            if oldstdout is not None and stdout_fn is not None:
                 sys.stdout.flush()
                 cls._redirect_fd_to_fd(oldstdout, 1)
                 if (tail):
@@ -243,7 +245,7 @@ class PyNNLess:
             stdout_fn = None
 
     @staticmethod
-    def _check_version(version = pyNN.__version__):
+    def _check_version(version=pyNN.__version__):
         """
         Internally used to check the current PyNN version. Sets the "version"
         variable to the correct API version and raises an exception if the PyNN
@@ -259,7 +261,7 @@ class PyNNLess:
         elif (version[0:3] == '0.8'):
             return 8
         raise exceptions.PyNNLessVersionException("Unsupported PyNN version '"
-            + version + "', supported are pyNN 0.6, 0.7 and 0.8")
+                                                  + version + "', supported are pyNN 0.6, 0.7 and 0.8")
 
     @classmethod
     def _lookup_simulator(cls, simulator):
@@ -364,7 +366,7 @@ class PyNNLess:
         default_setup = {}
         if (simulator in cls.DEFAULT_SETUPS):
             default_setup = cls._eval_setup(cls.DEFAULT_SETUPS[simulator], sim,
-                    simulator, version)
+                                            simulator, version)
 
         # Merge the user setup into the default setup and return the result
         default_setup.update(user_setup)
@@ -500,14 +502,14 @@ class PyNNLess:
                     params["v_reset"] = params["v_reset"] + vOffs
                     params["v_thresh"] = params["v_thresh"] + vOffs
                     self.parameter_warnings.add("set v_rest to -50.0 mV, " +
-                        "offset v_thresh, v_reset")
+                                                "offset v_thresh, v_reset")
 
         # Spikey specific adaptations
         if self.simulator == "spikey":
             if type_name == "IF_facets_hardware1":
                 # Shift the voltages below -55.0 mV
                 vs = [params["v_rest"], params["v_reset"], params["v_thresh"],
-                        params["e_rev_I"]]
+                      params["e_rev_I"]]
                 vMax = max(vs)
                 if vMax > -55.0:
                     vOffs = (-55.0) - vMax
@@ -516,7 +518,7 @@ class PyNNLess:
                     params["v_reset"] = params["v_reset"] + vOffs
                     params["v_thresh"] = params["v_thresh"] + vOffs
                     self.parameter_warnings.add("Neuron potentials were "
-                        + "shifted to stay below -55mV")
+                                                + "shifted to stay below -55mV")
 
         # Convert g_leak to tau_m and vice versa
         cm = None
@@ -554,7 +556,7 @@ class PyNNLess:
                 # This does not seem to be implemented on most
                 # platforms
                 self.warnings.add("Neuron membrane potential " +
-                        "initialization failed")
+                                  "initialization failed")
                 pass
 
     def _build_population(self, population, min_delay=0):
@@ -578,7 +580,7 @@ class PyNNLess:
         type_name = self._remap_neuron_type(population["type"])
         if (not hasattr(self.sim, type_name)):
             raise exceptions.PyNNLessException("Neuron type '" + type_name
-                    + "' not supported by backend.")
+                                               + "' not supported by backend.")
         type_ = getattr(self.sim, type_name)
         is_source = type_name == const.TYPE_SOURCE
 
@@ -587,20 +589,20 @@ class PyNNLess:
             # Fetch the default parameters for this neuron type and merge them
             # with parameters given for this population.
             params[i] = self.merge_default_parameters(population["params"][i],
-                    type_name, type_)
+                                                      type_name, type_)
 
             # For some hardware platforms we need to adapt the parameters a
             # little for the system to run -- if any change is done, PyNNLess
             # issues a warning notifying the user about these adaptations
             params[i] = self._fix_parameters(params[i], population["params"][i],
-                    type_name)
+                                             type_name)
 
             # Issue warnings about ignored parameters
             for key, _ in population["params"][i].items():
                 if (not key in params[i]):
                     self.warnings.add("Given parameter '" + key + "' does not " +
-                        "exist for neuron type '" + type_name + "'. Value " +
-                        "will be ignored!")
+                                      "exist for neuron type '" + type_name + "'. Value " +
+                                      "will be ignored!")
 
         # Fetch the parameter dimensions that should be recorded for this
         # population, make sure the elements in "record" are sorted
@@ -608,7 +610,7 @@ class PyNNLess:
         for signal in record:
             if (not signal in const.SIGNALS):
                 self.warnings.add("Unknown signal \"" + signal
-                    + "\". May be ignored by the backend.")
+                                  + "\". May be ignored by the backend.")
 
         # Make sure the spike times are larger or equal to one -- this
         # otherwise causes a problem with the spikes simply discarded when
@@ -700,10 +702,10 @@ class PyNNLess:
                 if (self.simulator == "spikey"):
                     if (self.record_v_count > 0 or count > 1):
                         self.warnings.add("Spikey can only record from a " +
-                            "single neuron. Only recording membrane " +
-                            "potential for the first neuron in the first " +
-                            "for which the membrane potential should be " +
-                            "recorded")
+                                          "single neuron. Only recording membrane " +
+                                          "potential for the first neuron in the first " +
+                                          "for which the membrane potential should be " +
+                                          "recorded")
                     if self.record_v_count == 0:
                         setattr(res, "__spikey_record_v", True)
                         self.sim.record_v(res[0], '')
@@ -727,7 +729,7 @@ class PyNNLess:
             try:
                 self._redirect_io(do_redirect=self.do_redirect)
                 self.backend_data["marocco"].placement.add(res,
-                      self.backend_data["hicann"])
+                                                           self.backend_data["hicann"])
             finally:
                 self._unredirect_io(False)
 
@@ -834,13 +836,13 @@ class PyNNLess:
             # Workaround for spikey, which seems to index the neurons globally
             # instead of per-neuron
             idx_offs = (getattr(population, "__offs")
-                    if hasattr(population, "__offs") else 0)
+                        if hasattr(population, "__offs") else 0)
             if self.simulator == "nmpm1":
                 return self._convert_pyNN7_spikes(population.getSpikes(),
-                    population.size, idx_offs=idx_offs + 1, t_scale=1000.0)
+                                                  population.size, idx_offs=idx_offs + 1, t_scale=1000.0)
             else:
                 return self._convert_pyNN7_spikes(population.getSpikes(),
-                    population.size, idx_offs=idx_offs)
+                                                  population.size, idx_offs=idx_offs)
         elif (self.version == 8):
             return self._convert_pyNN8_spikes(
                 population.get_data().segments[0].spiketrains)
@@ -858,7 +860,7 @@ class PyNNLess:
         """
         if (self.simulator == "nmpm1"):
             self.warnings.add("nmpm1 does not support retrieving recorded " +
-                    "signals for now")
+                              "signals for now")
             return {"data": np.zeros((population.size, 0), dtype=np.float32),
                     "time": np.zeros((0), dtype=np.float32)}
         if (self.version <= 7):
@@ -869,16 +871,16 @@ class PyNNLess:
                         return self._fetch_spikey_voltage(population)
                 else:
                     return self._convert_pyNN7_signal(population.get_v(), 2,
-                        population.size)
+                                                      population.size)
             elif (signal == const.SIG_GE):
                 return self._convert_pyNN7_signal(population.get_gsyn(), 2,
-                    population.size)
+                                                  population.size)
             elif (signal == const.SIG_GI):
                 # Workaround in bug #124 in sPyNNaker, see
                 # https://github.com/SpiNNakerManchester/sPyNNaker/issues/124
                 if (self.simulator != "nmmc1"):
                     return self._convert_pyNN7_signal(population.get_gsyn(), 3,
-                        population.size)
+                                                      population.size)
         elif (self.version == 8):
             for array in population.get_data().segments[0].analogsignalarrays:
                 if (array.name == signal):
@@ -899,7 +901,7 @@ class PyNNLess:
         elif (hasattr(pyNN.common, "control")
                 and hasattr(pyNN.common.control, "DEFAULT_TIMESTEP")):
             return pyNN.common.control.DEFAULT_TIMESTEP
-        return 0.1 # Above values are not defined in PyNN 0.6
+        return 0.1  # Above values are not defined in PyNN 0.6
 
     @classmethod
     def _auto_duration(cls, network):
@@ -927,7 +929,8 @@ class PyNNLess:
                 if "params" in p:
                     if isinstance(p["params"], list):
                         for i in xrange(len(p["params"])):
-                            duration = _max_spike_time(duration, p["params"][i])
+                            duration = _max_spike_time(
+                                duration, p["params"][i])
                     else:
                         duration = _max_spike_time(duration, p["params"])
         return duration + cls.AUTO_DURATION_EXTENSION
@@ -993,7 +996,7 @@ class PyNNLess:
     # Flag indicating whether the I/O should be summarised
     summarise_io = True
 
-    def __init__(self, simulator, setup = {}):
+    def __init__(self, simulator, setup={}):
         """
         Tries to load the PyNN simulator with the given name. Throws an
         exception if the simulator could not be found or no compatible PyNN
@@ -1013,10 +1016,10 @@ class PyNNLess:
         self.version = self._check_version()
         self.sim, self.simulator = self._load_simulator(simulator)
         self.setup = self._setup_simulator(setup, self.sim, self.simulator,
-                self.version)
+                                           self.version)
 
         logger.info("Loaded and successfully set up simulator \""
-            + self.simulator + "\"")
+                    + self.simulator + "\"")
 
     @classmethod
     def simulators(cls):
@@ -1077,7 +1080,7 @@ class PyNNLess:
         attribute this value is used for default parameters
         """
         # Try to fetch the default parameters
-        if (type_ != None and hasattr(type_, "default_parameters")):
+        if (type_ is not None and hasattr(type_, "default_parameters")):
             res = dict(type_.default_parameters)
         else:
             res = cls.default_parameters(type_name)
@@ -1106,9 +1109,11 @@ class PyNNLess:
         for key in res:
             if key in const.PARAMETER_LIMITS:
                 if "min" in const.PARAMETER_LIMITS[key]:
-                    res[key] = max(res[key], const.PARAMETER_LIMITS[key]["min"])
+                    res[key] = max(
+                        res[key], const.PARAMETER_LIMITS[key]["min"])
                 if "max" in const.PARAMETER_LIMITS[key]:
-                    res[key] = min(res[key], const.PARAMETER_LIMITS[key]["max"])
+                    res[key] = min(
+                        res[key], const.PARAMETER_LIMITS[key]["max"])
         return res
 
     def get_time_step(self):
@@ -1161,16 +1166,17 @@ class PyNNLess:
             res["max_neuron_count"] = 224
             res["is_emulation"] = True
         elif simulator == "nmpm1":
-            size = 4 if inst == None else inst.backend_data["neuron_size"]
+            size = 4 if inst is None else inst.backend_data["neuron_size"]
             res["max_neuron_count"] = 224 // size
         elif simulator == "nmmc1":
-#            res["max_neuron_count"] = 3 * 48 * 16 * 128 # TODO: Actual board size
+            # res["max_neuron_count"] = 3 * 48 * 16 * 128 # TODO: Actual board
+            # size
             res["sources_are_neurons"] = True
             res["max_neuron_count"] = 1500
         elif simulator == "spikey":
             res["max_neuron_count"] = 192
             res["shared_parameters"] = ["v_rest", "v_reset", "v_thresh",
-                    "e_rev_I"]
+                                        "e_rev_I"]
 
         return res
 
@@ -1193,7 +1199,7 @@ class PyNNLess:
             "finalize": self.time_finalize
         }
 
-    def run(self, network, duration = 0):
+    def run(self, network, duration=0):
         """
         Builds and runs the network described in the "network" structure.
 
@@ -1215,10 +1221,10 @@ class PyNNLess:
         # supplied
         if (not "populations" in network):
             raise exceptions.PyNNLessException("\"populations\" key must be " +
-                "present in network description")
+                                               "present in network description")
         if (not "connections" in network):
             raise exceptions.PyNNLessException("\"connections\" key must be " +
-                "present in network description")
+                                               "present in network description")
 
         # Reset some state variables
         self.parameter_warnings = set()
@@ -1242,7 +1248,7 @@ class PyNNLess:
         populations = [None for _ in xrange(population_count)]
         for i in xrange(population_count):
             populations[i] = self._build_population(
-                    network["populations"][i], timestep)
+                network["populations"][i], timestep)
 
         # Build the connection matrices, and perform the actual connections
         separate_connections = self.simulator == "nmmc1"
@@ -1256,8 +1262,8 @@ class PyNNLess:
             logger.warning("Adapted neuron parameters: " + warning)
         if len(self.parameter_warnings) != 0:
             logger.warning("Parameter adaptations have been performed. Set " +
-                "the setup flag \"fix_parameters\" to False to suppress this " +
-                "behaviour.")
+                           "the setup flag \"fix_parameters\" to False to suppress this " +
+                           "behaviour.")
         self.warnings = set()
 
         try:
@@ -1289,7 +1295,7 @@ class PyNNLess:
             for i in xrange(population_count):
                 if "record" in network["populations"][i]:
                     signals = builder.Population.canonicalize_record(
-                            network["populations"][i]["record"])
+                        network["populations"][i]["record"])
                     for signal in signals:
                         if (signal == const.SIG_SPIKES):
                             res[i][signal] = self._fetch_spikes(populations[i])
