@@ -160,12 +160,12 @@ class TestCommon(unittest.TestCase):
             [(1, 0), (4, 2), 0.4, 0.3],
         ])
 
-        self.assertEqual([
-                (1, 3, 0, 5, np.float32(0.1), np.float32(0.0)),
-                (1, 4, 0, 1, np.float32(0.3), np.float32(0.2)),
-                (1, 4, 0, 2, np.float32(0.4), np.float32(0.3)),
-                (2, 3, 2, 5, np.float32(0.2), np.float32(0.1))
-            ], connections.tolist())
+        self.assertEqual({
+            (1, 3): [(0, 5, 0.1, 0.0)],
+            (2, 3): [(2, 5, 0.2, 0.1)],
+            (1, 4): [(0, 1, 0.3, 0.2),
+                     (0, 2, 0.4, 0.3)],
+        }, connections)
 
     def test_convert_pyNN7_spikes(self):
         """

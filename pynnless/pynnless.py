@@ -736,75 +736,19 @@ class PyNNLess:
     @staticmethod
     def _build_connections(connections, min_delay=0):
         """
-        Gets an list of [[pid_src, nid_src], [pid_tar, nid_tar], weight, delay]
-        as "connections" and builds a structured array containing the source
-        population ids, and flatens it into a matrix. The resulting matrix is
-        sorted by pid_src and pid_tar and the given min_delay is applied to the
-        "delay" column.
+        Gets an array of [[pid_src, nid_src], [pid_tar, nid_tar], weight, delay]
+        tuples an builds a dictionary of all (pid_src, pid_tar) mappings.
         """
-        if not type(connections) is np.ndarray:
-            # Create the result array
-            res = np.zeros((len(connections)), dtype=[
-                ("pid_src", "int32"),
-                ("pid_tar", "int32"),
-                ("nid_src", "int32"),
-                ("nid_tar", "int32"),
-                ("weight", "float32"),
-                ("delay", "float32")
-            ]);
-
-            # Copy the connection data into the matrix
-            for i in xrange(len(connections)):
-                c = connections[i]
-                res[i] = (c[0][0], c[1][0], c[0][1], c[1][1], c[2], c[3])
-
-            # Sort the result by pid_src and pid_tar
-            res.sort(0, order=["pid_src", "pid_tar"])
-        else:
-            # If the incomming connections already are an ndarray, do nothing
-            res = connections
-
-        # Make sure the minimum delay is used
-        res["delay"] = np.maximum(min_delay, res["delay"])
-
+        res = {}
+        for connection in connections:
+            src, tar, weight, delay = connection
+            pids = (src[0], tar[0])
+            descrs = (src[1], tar[1], weight, max(min_delay, delay))
+            if (pids in res):
+                res[pids].append(descrs)
+            else:
+                res[pids] = [descrs]
         return res
-
-    def _connect(self, populations, connections, min_delay):
-        """
-        Performs the actual connections between neurons. First transforms the
-        given connections list into a sorted connection matrix, then tries to
-        batch-execute connections between neurons in the same source and target
-        population.
-
-        :param populations: is the list of already created population objects.
-        :param connections: is the list containing the connections.
-        :param min_delay: is the minimum synaptic delay.
-        """
-
-        # Build the sorted connection matrix
-        cs = self._build_connections(connections, min_delay)
-
-        # Get a view of the matrix containing only the listed columns
-        csv = np.ndarray(cs.shape,
-            {name:cs.dtype.fields[name] for name in
-                ["nid_src", "nid_tar", "weight", "delay"]
-            }, cs, 0, cs.strides)
-
-        # Build the actual connections, iterate over blocks which share pid_src
-        # and pid_tar
-        i = 0; last_i = 0; p1 = -1; p2 = -1
-        while i <= len(cs):
-            if i == len(cs) or cs[i][0] != p1 or cs[i][1] != p2:
-                if i != 0:
-                    p1 = cs[last_i][0] # pid_src
-                    p2 = cs[last_i][1] # pid_tar
-                    connector = self.sim.FromListConnector(
-                            csv[last_i:i].tolist())
-                    for _ in xrange(self.repeat_projections):
-                        self.sim.Projection(populations[p1],
-                                populations[p2], connector)
-                last_i = i
-            i = i + 1
 
     @staticmethod
     def _convert_pyNN7_spikes(spikes, n, idx_offs=0, t_scale=1.0):
@@ -1296,6 +1240,9 @@ class PyNNLess:
             populations[i] = self._build_population(
                     network["populations"][i], timestep)
 
+        # Build the connection matrices, and perform the actual connections
+        connections = self._build_connections(network["connections"], timestep)
+
         # Inform the user about the parameter adaptations and other warnings
         for warning in self.warnings:
             logger.warning(warning)
@@ -1311,7 +1258,11 @@ class PyNNLess:
             self._redirect_io(do_redirect=self.do_redirect)
 
             # Perform the actual connections
-            self._connect(populations, network["connections"], timestep)
+            for pids, descrs in connections.items():
+                for _ in xrange(self.repeat_projections):
+                    self.sim.Projection(
+                        populations[pids[0]], populations[pids[1]],
+                        self.sim.FromListConnector(descrs))
 
             # Run the simulation, measure time
             t2 = time.clock()
