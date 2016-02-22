@@ -48,7 +48,7 @@ import pynnless_exceptions as exceptions
 # Local logger, write to stderr
 logger = logging.getLogger("PyNNLess")
 if len(logger.handlers) == 0:
-    logger.addHandler(logging.StreamHandler())
+    logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.INFO)
 
 # Temporary file descriptors to the original stdout/stderr
