@@ -34,7 +34,7 @@ sim = pynl.PyNNLess(backend)
 # Build and run the synfire chain
 print("Simulating network...")
 synfire_len = 100
-w_syn = 0.06
+w_syn = 0.024
 res = sim.run(pynl.Network()
         .add_source(spike_times=[10.0])
         .add_population(
