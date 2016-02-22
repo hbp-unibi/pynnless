@@ -734,21 +734,23 @@ class PyNNLess:
         return res
 
     @staticmethod
-    def _build_connections(connections, min_delay=0):
+    def _build_connections(connections, min_delay=0, separate=False):
         """
         Gets an array of [[pid_src, nid_src], [pid_tar, nid_tar], weight, delay]
         tuples an builds a dictionary of all (pid_src, pid_tar) mappings.
         """
-        res = {}
+        res_exc = {}
+        res_inh = {}
         for connection in connections:
             src, tar, weight, delay = connection
             pids = (src[0], tar[0])
-            descrs = (src[1], tar[1], weight, max(min_delay, delay))
-            if (pids in res):
-                res[pids].append(descrs)
+            descrs = (src[1], tar[1], abs(weight), max(min_delay, delay))
+            res_tar = res_exc if (not separate) or weight > 0 else res_inh
+            if (pids in res_tar):
+                res_tar[pids].append(descrs)
             else:
-                res[pids] = [descrs]
-        return res
+                res_tar[pids] = [descrs]
+        return res_exc, res_inh
 
     @staticmethod
     def _convert_pyNN7_spikes(spikes, n, idx_offs=0, t_scale=1.0):
@@ -1241,7 +1243,9 @@ class PyNNLess:
                     network["populations"][i], timestep)
 
         # Build the connection matrices, and perform the actual connections
-        connections = self._build_connections(network["connections"], timestep)
+        separate_connections = self.simulator == "nmmc1"
+        connections_exc, connections_inh = self._build_connections(
+            network["connections"], timestep, separate=separate_connections)
 
         # Inform the user about the parameter adaptations and other warnings
         for warning in self.warnings:
@@ -1258,11 +1262,16 @@ class PyNNLess:
             self._redirect_io(do_redirect=self.do_redirect)
 
             # Perform the actual connections
-            for pids, descrs in connections.items():
+            for pids, descrs in connections_exc.items():
                 for _ in xrange(self.repeat_projections):
                     self.sim.Projection(
                         populations[pids[0]], populations[pids[1]],
                         self.sim.FromListConnector(descrs))
+            for pids, descrs in connections_inh.items():
+                for _ in xrange(self.repeat_projections):
+                    self.sim.Projection(
+                        populations[pids[0]], populations[pids[1]],
+                        self.sim.FromListConnector(descrs), target="inhibitory")
 
             # Run the simulation, measure time
             t2 = time.clock()
