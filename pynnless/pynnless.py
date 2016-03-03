@@ -79,7 +79,6 @@ class PyNNLess:
     # canonical form does not correspond to the name of the actual module
     # includes but the names that "feel more correct".
     NORMALIZED_SIMULATOR_NAMES = {
-        "hardware.brainscales": "ess",
         "spiNNaker": "nmmc1",
         "pyhmf": "nmpm1",
         "hardware.spikey": "spikey",
@@ -88,7 +87,7 @@ class PyNNLess:
     # Maps certain simulator names to the correct PyNN module names. If multiple
     # module names are given, the first found module is used.
     SIMULATOR_IMPORT_MAP = {
-        "ess": ["pyNN.hardware.brainscales"],
+        "ess": ["pyhmf"],
         "nmmc1": ["pyNN.spiNNaker"],
         "nmpm1": ["pyhmf"],
         "spikey": ["pyNN.hardware.spikey"],
@@ -121,10 +120,12 @@ class PyNNLess:
             # No default setup parameters needed
         },
         "ess": {
-            "ess_params": {"perfectSynapseTrafo": True},
-            "hardware": "$sim.hardwareSetup[\"one-hicann\"]",
-            "ignoreHWParameterRanges": True,
-            "useSystemSim": True,
+            "neuron_size": 4,
+            "hicann": 276
+#            "ess_params": {"perfectSynapseTrafo": True},
+#            "hardware": "$sim.hardwareSetup[\"one-hicann\"]",
+#            "ignoreHWParameterRanges": True,
+#            "useSystemSim": True,
         },
         "nmmc1": {
             "timestep": 1.0
@@ -373,7 +374,7 @@ class PyNNLess:
         return default_setup
 
     @staticmethod
-    def _setup_nmpm1(sim, setup):
+    def _setup_nmpm1(simulator, sim, setup):
         """
         Performs additional setup necessary for NMPM1. Creates a new Marocco
         (MApping ROuting Calibration and COnfiguration for HICANN Wafers)
@@ -399,8 +400,12 @@ class PyNNLess:
         marocco.placement.setDefaultNeuronSize(neuron_size)
         marocco.placement.use_output_buffer7_for_dnc_input_and_bg_hack = True
         marocco.placement.minSPL1 = False
-        marocco.backend = PyMarocco.Hardware
-        marocco.calib_backend = PyMarocco.XML
+        if simulator == "nmpm1":
+            marocco.backend = PyMarocco.ESS
+            marocco.calib_backend = PyMarocco.Default
+        else:
+            marocco.backend = PyMarocco.Hardware
+            marocco.calib_backend = PyMarocco.XML
         marocco.calib_path = "/wang/data/calibration/wafer_0"
 
         hicann = HICANNGlobal(Enum(hicann_number))
@@ -454,8 +459,8 @@ class PyNNLess:
         # simulators
         try:
             self._redirect_io(do_redirect=self.do_redirect)
-            if (simulator == "nmpm1"):
-                self.backend_data = self._setup_nmpm1(sim, setup)
+            if (simulator in ("nmpm1", "ess")):
+                self.backend_data = self._setup_nmpm1(simulator, sim, setup)
                 self.repeat_projections = self.backend_data["neuron_size"]
             else:
                 sim.setup(**setup)
@@ -484,25 +489,25 @@ class PyNNLess:
             return params
 
         # ESS specific adaptations
-        if ((self.simulator == "ess") and
-                (not self.setup["ignoreHWParameterRanges"])):
-            if type_name == const.TYPE_IF_COND_EXP:
-                if params["cm"] != 0.2:
-                    params["cm"] = 0.2
-                    self.parameter_warnings.add("cm set to 0.2")
-                if params["e_rev_E"] != 0.0:
-                    params["e_rev_E"] = 0.0
-                    self.parameter_warnings.add("e_rev_E set to 0.0 mV")
-                if params["e_rev_I"] != -100.0:
-                    params["e_rev_I"] = -100.0
-                    self.parameter_warnings.add("e_rev_I set to -100.0 mV")
-                if params["v_rest"] != -50.0:
-                    vOffs = (-50.0) - params["v_rest"]
-                    params["v_rest"] = params["v_rest"] + vOffs
-                    params["v_reset"] = params["v_reset"] + vOffs
-                    params["v_thresh"] = params["v_thresh"] + vOffs
-                    self.parameter_warnings.add("set v_rest to -50.0 mV, " +
-                                                "offset v_thresh, v_reset")
+#        if ((self.simulator == "ess") and
+#                (not self.setup["ignoreHWParameterRanges"])):
+#            if type_name == const.TYPE_IF_COND_EXP:
+#                if params["cm"] != 0.2:
+#                    params["cm"] = 0.2
+#                    self.parameter_warnings.add("cm set to 0.2")
+#                if params["e_rev_E"] != 0.0:
+#                    params["e_rev_E"] = 0.0
+#                    self.parameter_warnings.add("e_rev_E set to 0.0 mV")
+#                if params["e_rev_I"] != -100.0:
+#                    params["e_rev_I"] = -100.0
+#                    self.parameter_warnings.add("e_rev_I set to -100.0 mV")
+#                if params["v_rest"] != -50.0:
+#                    vOffs = (-50.0) - params["v_rest"]
+#                    params["v_rest"] = params["v_rest"] + vOffs
+#                    params["v_reset"] = params["v_reset"] + vOffs
+#                    params["v_thresh"] = params["v_thresh"] + vOffs
+#                    self.parameter_warnings.add("set v_rest to -50.0 mV, " +
+#                                                "offset v_thresh, v_reset")
 
         # Spikey specific adaptations
         if self.simulator == "spikey":
@@ -991,7 +996,7 @@ class PyNNLess:
     time_initialize = 0.0
 
     # Flag indicating whether the I/O should be redirected
-    do_redirect = True
+    do_redirect = False
 
     # Flag indicating whether the I/O should be summarised
     summarise_io = True
