@@ -20,6 +20,9 @@ find -depth \(\
 			   -name "*.backup"\
 			-o -name "*~"\
 			-o -name "*.pyc"\
+			-o -name "core.[0-9]*[0-9]"\
+			-o -name "stderr.*.tmp"\
+			-o -name "stdout.*.tmp"\
 			-o -name "spiketrain.in"\
 			-o -name "spikeyconfig.out"\
 			-o -name "logfile.txt"\
