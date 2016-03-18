@@ -628,6 +628,10 @@ class PyNNLess:
                         params[i]["spike_times"][j] = min_t
                 params[i]["spike_times"].sort()
 
+        # Workaround for bug #378 in PyNN
+        if ("spike_times" in params) and (len(params["spike_times"]) == 0):
+            del params["spike_times"]
+
         # Create the output population, in case this is not a source population,
         # also force the neuron membrane potential to be initialized with the
         # neuron membrane potential.
