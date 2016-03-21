@@ -1220,7 +1220,7 @@ class PyNNLess:
         """
 
         # First time measurement point
-        t1 = time.clock()
+        t1 = time.time()
 
         # Make sure both the "populations" and "connections" arrays have been
         # supplied
@@ -1287,9 +1287,9 @@ class PyNNLess:
                         self.sim.FromListConnector(descrs), target="inhibitory")
 
             # Run the simulation, measure time
-            t2 = time.clock()
+            t2 = time.time()
             self.sim.run(duration)
-            t3 = time.clock()
+            t3 = time.time()
 
             # End the simulation to fetch the results on nmpm1
             if (self.simulator in self.PREMATURE_END_SIMULATORS):
@@ -1321,7 +1321,7 @@ class PyNNLess:
 
         # Store the time measurements, can be retrieved using the
         # "get_time_info" method
-        t4 = time.clock()
+        t4 = time.time()
         self.time_total = t4 - t1
         self.time_sim = t3 - t2
         self.time_initialize = t2 - t1
